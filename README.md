@@ -24,7 +24,7 @@ sometimes try to obscure their identities by changing their screen names, and th
 
 Being able to look up historical social media profiles often makes it possible to identify the offline identities of these people (or at least to trace connections between their activities).
 
-Here are a few example off the top of my head (the first three are examples of the service in action, and the last two show how it can be used to confirm the work of others):
+Here are a few examples off the top of my head (the first three are examples of the service in action, and the last two show how it can be used to confirm the work of others):
 
 * [**`@OSINT_Ukraine`**](https://memory.lol/tw/OSINT_Ukraine): gained a large following in February 2022; looking up old screen names shows that [it had previously been an NFT scam account](https://twitter.com/travisbrown/status/1496784753705598977).
 * [**`@libsoftiktok`**](https://memory.lol/tw/libsoftiktok): a [viral hate account](https://www.washingtonpost.com/technology/2022/04/19/libs-of-tiktok-right-wing-media/) that targets LGBTQ+ people; looking up her screen name in this service is how I found her name (Chaya Raichik) a couple of months ago.
