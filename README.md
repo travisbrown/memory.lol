@@ -70,6 +70,33 @@ If there are two dates, they indicate the first and last day that the screen nam
 
 These date ranges will not generally represent the entire time that the screen name has been used (they just indicate when the account appears with that screen name in our data sets).
 
+## Other features
+
+The service is very minimal. One of these few things it does support is querying multiple screen names via a comma-separated list (for example: [`https://memory.lol/tw/jr_majewski,MayraFlores2022`](https://memory.lol/tw/jr_majewski,MayraFlores2022)).
+
+It currently only supports JSON output, but if you want a spreadsheet, for example, you can convert the JSON to CSV using a tool like [gojq][gojq]:
+
+```bash
+$ curl -s https://memory.lol/tw/jr_majewski,MayraFlores2022 |
+> gojq -r '.[].accounts | .[] | .id as $id | ."screen-names" | keys | [$id] + . | @csv'
+89469296,"LaRepublicana86","MayraFlores2022","MayraNohemiF"
+726873022603362304,"JRMajewski","jr_majewski"
+1533878962455293953,"jr_majewski"
+```
+
+Or if you want one screen name per row:
+
+```bash
+$ curl -s https://memory.lol/tw/jr_majewski,MayraFlores2022 |
+> gojq -r '.[].accounts | .[] | .id as $id | ."screen-names" | keys | .[] | [$id, .] | @csv'
+89469296,"LaRepublicana86"
+89469296,"MayraFlores2022"
+89469296,"MayraNohemiF"
+726873022603362304,"JRMajewski"
+726873022603362304,"jr_majewski"
+1533878962455293953,"jr_majewski"
+```
+
 ## Other endpoints
 
 You can also look up an account's history by account ID (e.g. [`https://memory.lol/tw/id/1326229737551912960`](https://memory.lol/tw/id/1326229737551912960) also shows the screen names for Raichik's account).
@@ -95,6 +122,7 @@ This software is published under the [Anti-Capitalist Software License][acsl] (v
 
 [acsl]: https://anticapitalist.software/
 [cancel-culture]: https://github.com/travisbrown/cancel-culture
+[gojq]: https://github.com/itchyny/gojq
 [internet-archive]: https://archive.org/
 [twitter-stream-grab]: https://archive.org/details/twitterstream
 [wayback-machine]: https://archive.org/web/
