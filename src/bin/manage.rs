@@ -43,6 +43,20 @@ fn main() -> Result<(), Error> {
                 db.insert_pair(user_id, screen_name, dates)?;
             }
         }
+        Command::ImportMentions { input, zst } => {
+            let file = File::open(input)?;
+
+            let source: Box<dyn Read> = if zst {
+                Box::new(Decoder::new(file)?)
+            } else {
+                Box::new(file)
+            };
+
+            let session = Session::load_mentions(source)?;
+            let count = session.update(&db, UpdateMode::Range)?;
+
+            log::info!("Updated {} entries", count);
+        }
         Command::ImportJson { input, zst } => {
             let file = File::open(input)?;
 
@@ -57,21 +71,58 @@ fn main() -> Result<(), Error> {
             let session = Session::load_json(reader)?;
             let count = session.update(&db, UpdateMode::Range)?;
 
-            log::info!("Update {} entries", count);
+            log::info!("Updated {} entries", count);
         }
-        Command::ImportMentions { input, zst } => {
-            let file = File::open(input)?;
+        Command::ImportBatch { input } => {
+            let mut paths = std::fs::read_dir(&input)?
+                .map(|entry| Ok(entry?.path()))
+                .collect::<Result<Vec<_>, std::io::Error>>()?;
+            paths.sort();
 
-            let source: Box<dyn Read> = if zst {
-                Box::new(Decoder::new(file)?)
-            } else {
-                Box::new(file)
-            };
+            for directory in paths {
+                log::info!("Importing directory: {}", directory.to_string_lossy());
 
-            let session = Session::load_mentions(source)?;
-            let count = session.update(&db, UpdateMode::Range)?;
+                let names_file_zst = directory.join("names.csv.zst");
+                let names_file = directory.join("names.csv");
 
-            log::info!("Update {} entries", count);
+                let profiles_file_zst = directory.join("profiles.csv.zst");
+                let profiles_file = directory.join("profiles.csv");
+
+                let names_source: Option<Box<dyn Read>> = if names_file_zst.exists() {
+                    let file = File::open(names_file_zst)?;
+                    Some(Box::new(Decoder::new(file)?))
+                } else if names_file.exists() {
+                    let file = File::open(names_file)?;
+                    Some(Box::new(file))
+                } else {
+                    None
+                };
+
+                let profiles_source: Option<Box<dyn Read>> = if profiles_file_zst.exists() {
+                    let file = File::open(profiles_file_zst)?;
+                    Some(Box::new(Decoder::new(file)?))
+                } else if profiles_file.exists() {
+                    let file = File::open(profiles_file)?;
+                    Some(Box::new(file))
+                } else {
+                    None
+                };
+
+                let mut count = 0;
+
+                if let Some(source) = names_source {
+                    let session = Session::load_mentions(source)?;
+                    count += session.update(&db, UpdateMode::Range)?;
+                }
+
+                if let Some(source) = profiles_source {
+                    let reader = BufReader::new(source);
+                    let session = Session::load_json(reader)?;
+                    count += session.update(&db, UpdateMode::Range)?;
+                }
+
+                log::info!("Updated {} entries", count);
+            }
         }
         Command::LookupId { id } => {
             let result = db.lookup_by_user_id(id)?;
@@ -140,6 +191,15 @@ enum Command {
     },
     /// Print account, screen name, and pair counts
     Stats,
+    /// Import a CSV file containing mentions
+    ImportMentions {
+        /// NDJSON file path
+        #[clap(long)]
+        input: String,
+        /// Use ZSTD compression
+        #[clap(long)]
+        zst: bool,
+    },
     /// Import an NDJSON file
     ImportJson {
         /// NDJSON file path
@@ -149,14 +209,11 @@ enum Command {
         #[clap(long)]
         zst: bool,
     },
-    /// Import a CSV file containing mentions
-    ImportMentions {
-        /// NDJSON file path
+    /// Import a batch of Twitter Stream Grab output directories
+    ImportBatch {
+        /// Base directory
         #[clap(long)]
         input: String,
-        /// Use ZSTD compression
-        #[clap(long)]
-        zst: bool,
     },
     /// Import a CSV from stdin with multiple timestamps per row
     ImportMulti,
