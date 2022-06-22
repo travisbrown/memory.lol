@@ -15,33 +15,29 @@ fn main() -> Result<(), Error> {
     let db = Lookup::new(&opts.db)?;
 
     match opts.command {
-        Command::ImportMulti => {
-            let stdin = std::io::stdin();
-            for line in stdin.lock().lines() {
-                let line = line?;
-                let parts = line.split(',').collect::<Vec<_>>();
-                let user_id = parts
-                    .get(0)
-                    .and_then(|value| value.parse::<u64>().ok())
-                    .ok_or_else(|| Error::InvalidImportLine(line.clone()))?;
-                let screen_name = parts
-                    .get(1)
-                    .ok_or_else(|| Error::InvalidImportLine(line.clone()))?;
+        Command::LookupId { id } => {
+            let result = db.lookup_by_user_id(id)?;
+            let mut results = result.iter().collect::<Vec<_>>();
+            results.sort_by_key(|(screen_name, _)| screen_name.to_string());
 
-                let mut dates = vec![];
-
-                for part in &parts[2..] {
-                    let value = part
-                        .parse::<i64>()
-                        .map_err(|_| Error::InvalidImportLine(line.clone()))?;
-                    dates.push(Utc.timestamp(value, 0).naive_utc().date());
-                }
-
-                dates.sort();
-                dates.dedup();
-
-                db.insert_pair(user_id, screen_name, dates)?;
+            for (screen_name, dates) in results {
+                println!(
+                    "{}: {}",
+                    screen_name,
+                    dates
+                        .iter()
+                        .map(|date| date.to_string())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                );
             }
+        }
+        Command::Stats => {
+            let (pair_count, user_id_count, screen_name_count) = db.get_counts()?;
+
+            println!("Accounts: {}", user_id_count);
+            println!("Screen names: {}", screen_name_count);
+            println!("Pairs: {}", pair_count);
         }
         Command::ImportMentions { input, zst } => {
             let file = File::open(input)?;
@@ -124,29 +120,33 @@ fn main() -> Result<(), Error> {
                 log::info!("Updated {} entries", count);
             }
         }
-        Command::LookupId { id } => {
-            let result = db.lookup_by_user_id(id)?;
-            let mut results = result.iter().collect::<Vec<_>>();
-            results.sort_by_key(|(screen_name, _)| screen_name.to_string());
+        Command::ImportMulti => {
+            let stdin = std::io::stdin();
+            for line in stdin.lock().lines() {
+                let line = line?;
+                let parts = line.split(',').collect::<Vec<_>>();
+                let user_id = parts
+                    .get(0)
+                    .and_then(|value| value.parse::<u64>().ok())
+                    .ok_or_else(|| Error::InvalidImportLine(line.clone()))?;
+                let screen_name = parts
+                    .get(1)
+                    .ok_or_else(|| Error::InvalidImportLine(line.clone()))?;
 
-            for (screen_name, dates) in results {
-                println!(
-                    "{}: {}",
-                    screen_name,
-                    dates
-                        .iter()
-                        .map(|date| date.to_string())
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                );
+                let mut dates = vec![];
+
+                for part in &parts[2..] {
+                    let value = part
+                        .parse::<i64>()
+                        .map_err(|_| Error::InvalidImportLine(line.clone()))?;
+                    dates.push(Utc.timestamp(value, 0).naive_utc().date());
+                }
+
+                dates.sort();
+                dates.dedup();
+
+                db.insert_pair(user_id, screen_name, dates)?;
             }
-        }
-        Command::Stats => {
-            let (pair_count, user_id_count, screen_name_count) = db.get_counts()?;
-
-            println!("Accounts: {}", user_id_count);
-            println!("Screen names: {}", screen_name_count);
-            println!("Pairs: {}", pair_count);
         }
     }
 
