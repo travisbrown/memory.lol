@@ -69,9 +69,32 @@ fn main() -> Result<(), Error> {
 
             log::info!("Updated {} entries", count);
         }
-        Command::ImportBatch { input } => {
+        Command::ImportBatch { input, prefix } => {
+            let prefix = prefix.as_ref();
+
             let mut paths = std::fs::read_dir(&input)?
-                .map(|entry| Ok(entry?.path()))
+                .filter_map(|entry| {
+                    entry.map_or_else(
+                        |error| Some(Err(error)),
+                        |entry| {
+                            let path = entry.path();
+
+                            if prefix
+                                .map(|prefix| {
+                                    path.file_name()
+                                        .and_then(|file_name| file_name.to_str())
+                                        .map(|file_name| file_name.starts_with(prefix))
+                                        .unwrap_or(false)
+                                })
+                                .unwrap_or(true)
+                            {
+                                Some(Ok(path))
+                            } else {
+                                None
+                            }
+                        },
+                    )
+                })
                 .collect::<Result<Vec<_>, std::io::Error>>()?;
             paths.sort();
 
@@ -107,11 +130,13 @@ fn main() -> Result<(), Error> {
                 let mut count = 0;
 
                 if let Some(source) = names_source {
+                    log::info!("Importing mentions");
                     let session = Session::load_mentions(source)?;
                     count += session.update(&db, UpdateMode::Range)?;
                 }
 
                 if let Some(source) = profiles_source {
+                    log::info!("Importing profiles");
                     let reader = BufReader::new(source);
                     let session = Session::load_json(reader)?;
                     count += session.update(&db, UpdateMode::Range)?;
@@ -214,6 +239,9 @@ enum Command {
         /// Base directory
         #[clap(long)]
         input: String,
+        /// Directory prefix
+        #[clap(long)]
+        prefix: Option<String>,
     },
     /// Import a CSV from stdin with multiple timestamps per row
     ImportMulti,
