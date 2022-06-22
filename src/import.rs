@@ -132,16 +132,22 @@ impl Session {
                 }
 
                 UpdateMode::Range => {
-                    let mut range = Vec::with_capacity(2);
+                    let range = if dates.len() <= 2 {
+                        dates
+                    } else {
+                        let mut range = Vec::with_capacity(2);
 
-                    if let Some(first) = snapshots.first() {
-                        range.push(*first);
-                    }
-                    if let Some(last) = snapshots.last() {
-                        range.push(*last);
-                    }
+                        if let Some(first) = dates.first() {
+                            range.push(*first);
+                        }
+                        if let Some(last) = dates.last() {
+                            range.push(*last);
+                        }
 
-                    db.insert_pair(*id, screen_name, dates)?;
+                        range
+                    };
+
+                    db.insert_pair(*id, screen_name, range)?;
                 }
             }
 
