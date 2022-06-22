@@ -97,6 +97,9 @@ $ curl -s https://memory.lol/tw/jr_majewski,MayraFlores2022 |
 1533878962455293953,"jr_majewski"
 ```
 
+Note that screen name queries are case-insensitive, but the results distinguish case
+(which can be useful for archives such as [Archive Today][archive-today], which only provide case-sensitive search).
+
 ## Other endpoints
 
 You can also look up an account's history by account ID (e.g. [`https://memory.lol/tw/id/1326229737551912960`](https://memory.lol/tw/id/1326229737551912960) also shows the screen names for Raichik's account).
@@ -121,6 +124,7 @@ This repository does not contain data from any social media platform.
 This software is published under the [Anti-Capitalist Software License][acsl] (v. 1.4).
 
 [acsl]: https://anticapitalist.software/
+[archive-today]: https://archive.today/
 [cancel-culture]: https://github.com/travisbrown/cancel-culture
 [gojq]: https://github.com/itchyny/gojq
 [internet-archive]: https://archive.org/
