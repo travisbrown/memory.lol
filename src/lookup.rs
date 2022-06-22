@@ -64,6 +64,47 @@ impl Lookup {
         Ok((pair_count, user_id_count, screen_name_count))
     }
 
+    pub fn compress_ranges(&self) -> Result<(), Error> {
+        let iter = self.db.iterator(IteratorMode::Start);
+
+        for (key, value) in iter {
+            if key[0] == 0 {
+                let mut dates = Self::value_to_dates(&value)?;
+                // If we don't have more than a range we don't need to compress
+                if dates.len() > 2 {
+                    dates.sort();
+                    dates.dedup();
+
+                    let compressed_dates = if dates.len() <= 2 {
+                        dates
+                    } else {
+                        let mut compressed_dates = Vec::with_capacity(2);
+
+                        if let Some(first) = dates.first() {
+                            compressed_dates.push(*first);
+                        }
+
+                        if let Some(last) = dates.last() {
+                            compressed_dates.push(*last);
+                        }
+
+                        compressed_dates
+                    };
+
+                    let mut new_value = Vec::with_capacity(4 * compressed_dates.len());
+
+                    for date in compressed_dates {
+                        new_value.extend_from_slice(&Self::date_to_day_id(&date)?.to_be_bytes());
+                    }
+
+                    self.db.put(key, new_value)?;
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     fn user_id_to_prefix(user_id: u64) -> Vec<u8> {
         let mut prefix = Vec::with_capacity(9);
         prefix.push(0);
