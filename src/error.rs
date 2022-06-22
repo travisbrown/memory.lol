@@ -3,9 +3,8 @@ use rocket::{
     request::Request,
     response::{Responder, Result},
 };
-use thiserror::Error;
 
-#[derive(Error, Debug)]
+#[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error("I/O error")]
     Io(#[from] std::io::Error),

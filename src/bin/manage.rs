@@ -1,8 +1,13 @@
 use chrono::{TimeZone, Utc};
 use clap::Parser;
-use memory_lol::lookup::Lookup;
+use memory_lol::{
+    import::{Session, UpdateMode},
+    lookup::Lookup,
+};
 use simplelog::LevelFilter;
-use std::io::BufRead;
+use std::fs::File;
+use std::io::{BufRead, BufReader, Read};
+use zstd::stream::read::Decoder;
 
 fn main() -> Result<(), Error> {
     let opts: Opts = Opts::parse();
@@ -10,7 +15,7 @@ fn main() -> Result<(), Error> {
     let db = Lookup::new(&opts.db)?;
 
     match opts.command {
-        Command::Import => {
+        Command::ImportMulti => {
             let stdin = std::io::stdin();
             for line in stdin.lock().lines() {
                 let line = line?;
@@ -37,6 +42,36 @@ fn main() -> Result<(), Error> {
 
                 db.insert_pair(user_id, screen_name, dates)?;
             }
+        }
+        Command::ImportJson { input, zst } => {
+            let file = File::open(input)?;
+
+            let source: Box<dyn Read> = if zst {
+                Box::new(Decoder::new(file)?)
+            } else {
+                Box::new(file)
+            };
+
+            let reader = BufReader::new(source);
+
+            let session = Session::load_json(reader)?;
+            let count = session.update(&db, UpdateMode::Range)?;
+
+            log::info!("Update {} entries", count);
+        }
+        Command::ImportMentions { input, zst } => {
+            let file = File::open(input)?;
+
+            let source: Box<dyn Read> = if zst {
+                Box::new(Decoder::new(file)?)
+            } else {
+                Box::new(file)
+            };
+
+            let session = Session::load_mentions(source)?;
+            let count = session.update(&db, UpdateMode::Range)?;
+
+            log::info!("Update {} entries", count);
         }
         Command::LookupId { id } => {
             let result = db.lookup_by_user_id(id)?;
@@ -71,8 +106,12 @@ fn main() -> Result<(), Error> {
 pub enum Error {
     #[error("Application error")]
     App(#[from] memory_lol::error::Error),
+    #[error("Import error")]
+    Import(#[from] memory_lol::import::Error),
     #[error("I/O error")]
     Io(#[from] std::io::Error),
+    #[error("JSON error")]
+    Json(#[from] serde_json::Error),
     #[error("Log initialization error")]
     LogInitialization(#[from] log::SetLoggerError),
     #[error("Invalid import line")]
@@ -94,12 +133,33 @@ struct Opts {
 
 #[derive(Debug, Parser)]
 enum Command {
-    Import,
+    /// Look up a Twitter user ID in the database
     LookupId {
         /// Twitter user ID
         id: u64,
     },
+    /// Print account, screen name, and pair counts
     Stats,
+    /// Import an NDJSON file
+    ImportJson {
+        /// NDJSON file path
+        #[clap(long)]
+        input: String,
+        /// Use ZSTD compression
+        #[clap(long)]
+        zst: bool,
+    },
+    /// Import a CSV file containing mentions
+    ImportMentions {
+        /// NDJSON file path
+        #[clap(long)]
+        input: String,
+        /// Use ZSTD compression
+        #[clap(long)]
+        zst: bool,
+    },
+    /// Import a CSV from stdin with multiple timestamps per row
+    ImportMulti,
 }
 
 fn select_log_level_filter(verbosity: i32) -> LevelFilter {

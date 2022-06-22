@@ -104,6 +104,13 @@ Note that screen name queries are case-insensitive, but the results distinguish 
 
 You can also look up an account's history by account ID (e.g. [`https://memory.lol/tw/id/1326229737551912960`](https://memory.lol/tw/id/1326229737551912960) also shows the screen names for Raichik's account).
 
+## Importing data
+
+The application currently supports importing data in two file formats.
+The first requires one [Twitter user object][user-object] [per line][ndjson]
+(in JSON format with an additional `snapshot` field representing the observation time as an epoch second).
+The second is a CSV format with at least three columns (Twitter user ID, screen name, and observation time as epoch second).
+
 ## Future
 
 Anything about the web service is subject to change at any time, including its availability.
@@ -128,5 +135,7 @@ This software is published under the [Anti-Capitalist Software License][acsl] (v
 [cancel-culture]: https://github.com/travisbrown/cancel-culture
 [gojq]: https://github.com/itchyny/gojq
 [internet-archive]: https://archive.org/
+[ndjson]: http://ndjson.org/
 [twitter-stream-grab]: https://archive.org/details/twitterstream
+[user-object]: https://developer.twitter.com/en/docs/twitter-api/v1/data-dictionary/object-model/user
 [wayback-machine]: https://archive.org/web/
