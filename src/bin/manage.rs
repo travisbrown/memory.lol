@@ -104,8 +104,8 @@ fn main() -> Result<(), Error> {
                 let names_file_zst = directory.join("names.csv.zst");
                 let names_file = directory.join("names.csv");
 
-                let profiles_file_zst = directory.join("profiles.csv.zst");
-                let profiles_file = directory.join("profiles.csv");
+                let profiles_file_zst = directory.join("profiles.ndjson.zst");
+                let profiles_file = directory.join("profiles.ndjson");
 
                 let names_source: Option<Box<dyn Read>> = if names_file_zst.exists() {
                     let file = File::open(names_file_zst)?;
