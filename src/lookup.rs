@@ -176,7 +176,7 @@ impl Lookup {
         screen_name: &str,
         dates: Vec<NaiveDate>,
     ) -> Result<(), Error> {
-        let mut value = Vec::with_capacity(2 * dates.len());
+        let mut value = Vec::with_capacity(4 * dates.len());
 
         for date in dates {
             value.extend_from_slice(&Self::date_to_day_id(&date)?.to_be_bytes());
