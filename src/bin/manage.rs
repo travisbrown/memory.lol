@@ -39,6 +39,13 @@ fn main() -> Result<(), Error> {
             println!("Screen names: {}", screen_name_count);
             println!("Pairs: {}", pair_count);
         }
+        Command::DateCounts => {
+            let date_counts = db.get_date_counts()?;
+
+            for (date, count) in date_counts {
+                println!("{},{}", date.format("%Y-%m-%d"), count);
+            }
+        }
         Command::ImportMentions { input, zst } => {
             let file = File::open(input)?;
 
@@ -219,6 +226,8 @@ enum Command {
     },
     /// Print account, screen name, and pair counts
     Stats,
+    /// Print counts for dates
+    DateCounts,
     /// Import a CSV file containing mentions
     ImportMentions {
         /// NDJSON file path

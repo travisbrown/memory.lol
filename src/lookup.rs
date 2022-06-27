@@ -64,6 +64,27 @@ impl Lookup {
         Ok((pair_count, user_id_count, screen_name_count))
     }
 
+    pub fn get_date_counts(&self) -> Result<Vec<(NaiveDate, u64)>, Error> {
+        let mut map = HashMap::new();
+        let iter = self.db.iterator(IteratorMode::Start);
+
+        for (key, value) in iter {
+            if key[0] == 0 {
+                let dates = Self::value_to_dates(&value)?;
+
+                for date in dates {
+                    let count = map.entry(date).or_default();
+                    *count += 1;
+                }
+            }
+        }
+
+        let mut result = map.into_iter().collect::<Vec<_>>();
+        result.sort();
+
+        Ok(result)
+    }
+
     pub fn compact_ranges(&self) -> Result<(), Error> {
         let iter = self.db.iterator(IteratorMode::Start);
 
