@@ -145,8 +145,8 @@ fn main() -> Result<(), Error> {
                 log::info!("Updated {} entries", count);
             }
         }
-        Command::CompressRanges => {
-            db.compress_ranges()?;
+        Command::CompactRanges => {
+            db.compact_ranges()?;
         }
         Command::ImportMulti => {
             let stdin = std::io::stdin();
@@ -246,8 +246,8 @@ enum Command {
         #[clap(long)]
         prefix: Option<String>,
     },
-    /// Compress ranges in database
-    CompressRanges,
+    /// Compact ranges in database
+    CompactRanges,
     /// Import a CSV from stdin with multiple timestamps per row
     ImportMulti,
 }
