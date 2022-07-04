@@ -11,7 +11,7 @@ use zstd::stream::read::Decoder;
 
 fn main() -> Result<(), Error> {
     let opts: Opts = Opts::parse();
-    let _ = init_logging(opts.verbose)?;
+    init_logging(opts.verbose)?;
     let db = Lookup::new(&opts.db)?;
 
     match opts.command {
