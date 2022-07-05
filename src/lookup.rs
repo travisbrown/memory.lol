@@ -369,5 +369,12 @@ mod tests {
 
         assert_eq!(db.lookup_by_screen_name("foo").unwrap(), vec![123, 456]);
         assert_eq!(db.lookup_by_user_id(123).unwrap(), expected_by_id);
+        assert_eq!(db.get_counts().unwrap(), (3, 2, 2));
+
+        db.compact_ranges().unwrap();
+
+        assert_eq!(db.lookup_by_screen_name("foo").unwrap(), vec![123, 456]);
+        assert_eq!(db.lookup_by_user_id(123).unwrap(), expected_by_id);
+        assert_eq!(db.get_counts().unwrap(), (3, 2, 2));
     }
 }
