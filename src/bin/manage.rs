@@ -46,6 +46,13 @@ fn main() -> Result<(), Error> {
                 println!("{},{}", date.format("%Y-%m-%d"), count);
             }
         }
+        Command::MostScreenNames { count } => {
+            let most_screen_names = db.get_most_screen_names(count)?;
+
+            for (id, screen_names) in most_screen_names {
+                println!("{},{},{}", id, screen_names.len(), screen_names.join(";"));
+            }
+        }
         Command::ImportMentions { input, zst } => {
             let file = File::open(input)?;
 
@@ -228,6 +235,11 @@ enum Command {
     Stats,
     /// Print counts for dates
     DateCounts,
+    /// List the accounts with the most screen names
+    MostScreenNames {
+        #[clap(long, default_value = "100")]
+        count: usize,
+    },
     /// Import a CSV file containing mentions
     ImportMentions {
         /// NDJSON file path

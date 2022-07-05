@@ -57,6 +57,7 @@ impl Lookup {
             } else if key[0] == 1 {
                 screen_name_count += 1;
             } else if key[0] != 2 {
+                // We allow 2 as a prefix because it was previously used to track imported files
                 return Err(Error::InvalidKey(key.to_vec()));
             }
         }
@@ -85,6 +86,39 @@ impl Lookup {
         result.sort();
 
         Ok(result)
+    }
+
+    pub fn get_most_screen_names(&self, k: usize) -> Result<Vec<(u64, Vec<String>)>, Error> {
+        let mut queue = priority_queue::DoublePriorityQueue::with_capacity(k);
+        let iter = self.db.iterator(IteratorMode::Start);
+        let mut last_user_id = 0;
+        let mut current: Vec<String> = vec![];
+
+        for (key, _) in iter {
+            if let Some((user_id, screen_name)) = Self::key_to_pair(&key)? {
+                if user_id != last_user_id {
+                    let min = queue.peek_min().map(|(_, count)| *count).unwrap_or(0);
+                    let len = current.len();
+
+                    if len >= min {
+                        queue.push((last_user_id, current.drain(..).collect()), len);
+
+                        if queue.len() > k {
+                            queue.pop_min();
+                        }
+                    } else {
+                        current.clear();
+                    }
+
+                    last_user_id = user_id;
+                }
+                current.push(screen_name.to_string());
+            } else {
+                break;
+            }
+        }
+
+        Ok(queue.into_descending_sorted_vec())
     }
 
     pub fn compact_ranges(&self) -> Result<(), Error> {
