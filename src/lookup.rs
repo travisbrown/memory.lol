@@ -76,6 +76,8 @@ impl Lookup {
                     let count = map.entry(date).or_default();
                     *count += 1;
                 }
+            } else {
+                break;
             }
         }
 
