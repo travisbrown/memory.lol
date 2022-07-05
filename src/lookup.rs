@@ -1,6 +1,6 @@
 use super::error::Error;
 use chrono::{Duration, NaiveDate};
-use rocksdb::{IteratorMode, MergeOperands, Options, DB};
+use rocksdb::{DBIterator, IteratorMode, MergeOperands, Options, DB};
 use std::collections::HashMap;
 use std::convert::TryInto;
 use std::path::Path;
@@ -32,6 +32,12 @@ impl Lookup {
     fn day_id_to_date(day_id: u16) -> NaiveDate {
         let twitter_epoch = NaiveDate::from_ymd(2006, 3, 21);
         twitter_epoch + Duration::days(day_id.into())
+    }
+
+    pub fn pairs(&self) -> PairIterator<DBIterator> {
+        PairIterator {
+            underlying: self.db.iterator(IteratorMode::Start),
+        }
     }
 
     pub fn get_counts(&self) -> Result<(u64, u64, u64), Error> {
@@ -384,6 +390,26 @@ impl Lookup {
         }
     }
 }
+pub struct PairIterator<I> {
+    underlying: I,
+}
+
+impl<I: Iterator<Item = (Box<[u8]>, Box<[u8]>)>> Iterator for PairIterator<I> {
+    type Item = Result<(u64, String, Vec<NaiveDate>), Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let (key, value) = self.underlying.next()?;
+
+        Lookup::key_to_pair(&key).map_or_else(
+            |error| Some(Err(error)),
+            |pair| {
+                pair.map(|(id, screen_name)| {
+                    Lookup::value_to_dates(&value).map(|dates| (id, screen_name.to_string(), dates))
+                })
+            },
+        )
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -403,14 +429,28 @@ mod tests {
         expected_by_id.insert("foo".to_string(), vec![]);
         expected_by_id.insert("bar".to_string(), vec![]);
 
+        let expected_pairs = vec![
+            (123, "bar".to_string(), vec![]),
+            (123, "foo".to_string(), vec![]),
+            (456, "foo".to_string(), vec![]),
+        ];
+
         assert_eq!(db.lookup_by_screen_name("foo").unwrap(), vec![123, 456]);
         assert_eq!(db.lookup_by_user_id(123).unwrap(), expected_by_id);
         assert_eq!(db.get_counts().unwrap(), (3, 2, 2));
+        assert_eq!(
+            db.pairs().collect::<Result<Vec<_>, _>>().unwrap(),
+            expected_pairs
+        );
 
         db.compact_ranges().unwrap();
 
         assert_eq!(db.lookup_by_screen_name("foo").unwrap(), vec![123, 456]);
         assert_eq!(db.lookup_by_user_id(123).unwrap(), expected_by_id);
         assert_eq!(db.get_counts().unwrap(), (3, 2, 2));
+        assert_eq!(
+            db.pairs().collect::<Result<Vec<_>, _>>().unwrap(),
+            expected_pairs
+        );
     }
 }

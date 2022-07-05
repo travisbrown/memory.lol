@@ -32,6 +32,22 @@ fn main() -> Result<(), Error> {
                 );
             }
         }
+        Command::Dump => {
+            for pair in db.pairs() {
+                let (id, screen_name, dates) = pair?;
+
+                println!(
+                    "{},{},{}",
+                    id,
+                    screen_name,
+                    dates
+                        .iter()
+                        .map(|date| date.format("%Y-%m-%d").to_string())
+                        .collect::<Vec<_>>()
+                        .join(";")
+                );
+            }
+        }
         Command::Stats => {
             let (pair_count, user_id_count, screen_name_count) = db.get_counts()?;
 
@@ -231,6 +247,8 @@ enum Command {
         /// Twitter user ID
         id: u64,
     },
+    /// Export all pairs with observation dates in CSV format
+    Dump,
     /// Print account, screen name, and pair counts
     Stats,
     /// Print counts for dates
