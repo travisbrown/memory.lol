@@ -206,6 +206,22 @@ fn main() -> Result<(), Error> {
                 db.insert_pair(user_id, screen_name, dates)?;
             }
         }
+        Command::Remove => {
+            let stdin = std::io::stdin();
+            for line in stdin.lock().lines() {
+                let line = line?;
+                let parts = line.split(',').collect::<Vec<_>>();
+                let user_id = parts
+                    .get(0)
+                    .and_then(|value| value.parse::<u64>().ok())
+                    .ok_or_else(|| Error::InvalidImportLine(line.clone()))?;
+                let screen_name = parts
+                    .get(1)
+                    .ok_or_else(|| Error::InvalidImportLine(line.clone()))?;
+
+                db.remove_pair(user_id, screen_name)?;
+            }
+        }
     }
 
     Ok(())
@@ -289,6 +305,8 @@ enum Command {
     CompactRanges,
     /// Import a CSV from stdin with multiple timestamps per row
     ImportMulti,
+    /// Remove comma-separated ID-screen name pairs provided from stdin
+    Remove,
 }
 
 fn select_log_level_filter(verbosity: i32) -> LevelFilter {

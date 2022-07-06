@@ -293,6 +293,12 @@ impl Lookup {
         Ok(())
     }
 
+    pub fn remove_pair(&self, id: u64, screen_name: &str) -> Result<(), Error> {
+        let key = Self::pair_to_key(id, screen_name);
+
+        Ok(self.db.delete(key)?)
+    }
+
     fn merge(
         new_key: &[u8],
         existing_val: Option<&[u8]>,
