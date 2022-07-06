@@ -201,6 +201,23 @@ impl Lookup {
         Ok(pair)
     }
 
+    fn value_to_ids(value: &[u8]) -> Result<Vec<u64>, Error> {
+        let mut result = Vec::with_capacity(1);
+        let mut i = 0;
+
+        while i < value.len() {
+            let id = u64::from_be_bytes(
+                value[i..i + 8]
+                    .try_into()
+                    .map_err(|_| Error::InvalidValue(value.to_vec()))?,
+            );
+            result.push(id);
+            i += 8;
+        }
+
+        Ok(result)
+    }
+
     fn value_to_dates(value: &[u8]) -> Result<Vec<NaiveDate>, Error> {
         let mut result = Vec::with_capacity(1);
 
@@ -243,26 +260,34 @@ impl Lookup {
 
     pub fn lookup_by_screen_name(&self, screen_name: &str) -> Result<Vec<u64>, Error> {
         let value = self.db.get_pinned(Self::screen_name_to_key(screen_name))?;
+        value
+            .as_ref()
+            .map(|value| Self::value_to_ids(value))
+            .unwrap_or_else(|| Ok(vec![]))
+    }
 
-        if let Some(value) = value {
-            let mut result = Vec::with_capacity(1);
-            let mut i = 0;
+    pub fn lookup_by_screen_name_prefix(
+        &self,
+        screen_name: &str,
+        limit: usize,
+    ) -> Result<Vec<(String, Vec<u64>)>, Error> {
+        let prefix = Self::screen_name_to_key(screen_name);
+        let iter = self.db.prefix_iterator(&prefix);
+        let mut result = Vec::with_capacity(1);
 
-            while i < value.len() {
-                let next = u64::from_be_bytes(
-                    value[i..i + 8]
-                        .try_into()
-                        .map_err(|_| Error::InvalidValue(value.to_vec()))?,
-                );
+        for (key, value) in iter.take(limit) {
+            if key.starts_with(&prefix) {
+                if let Some(screen_name) = Self::key_to_screen_name(&key)? {
+                    let ids = Self::value_to_ids(&value)?;
 
-                result.push(next);
-                i += 8;
+                    result.push((screen_name.to_string(), ids));
+                }
+            } else {
+                break;
             }
-
-            Ok(result)
-        } else {
-            Ok(vec![])
         }
+
+        Ok(result)
     }
 
     fn screen_name_to_key(screen_name: &str) -> Vec<u8> {
@@ -496,6 +521,29 @@ mod tests {
         assert_eq!(
             db.pairs().collect::<Result<Vec<_>, _>>().unwrap(),
             expected_pairs
+        );
+    }
+
+    #[test]
+    fn lookup_by_screen_name_prefix() {
+        let dir = tempfile::tempdir().unwrap();
+        let db = Lookup::new(dir).unwrap();
+        db.insert_pair(123, "foo", vec![]).unwrap();
+        db.insert_pair(123, "bar", vec![]).unwrap();
+        db.insert_pair(1000, "for", vec![]).unwrap();
+        db.insert_pair(1001, "baz", vec![]).unwrap();
+        db.insert_pair(1002, "follow", vec![]).unwrap();
+        db.insert_pair(1003, "FOR", vec![]).unwrap();
+
+        let expected = vec![
+            ("follow".to_string(), vec![1002]),
+            ("foo".to_string(), vec![123]),
+            ("for".to_string(), vec![1000, 1003]),
+        ];
+
+        assert_eq!(
+            db.lookup_by_screen_name_prefix("fo", 128).unwrap(),
+            expected
         );
     }
 }
