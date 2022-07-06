@@ -1,6 +1,7 @@
 use chrono::{TimeZone, Utc};
 use clap::Parser;
 use memory_lol::{
+    db::table::Table,
     import::{Session, UpdateMode},
     lookup::Lookup,
 };
@@ -54,6 +55,24 @@ fn main() -> Result<(), Error> {
             println!("Accounts: {}", user_id_count);
             println!("Screen names: {}", screen_name_count);
             println!("Pairs: {}", pair_count);
+        }
+        Command::NewStats {
+            accounts,
+            screen_names,
+        } => {
+            let accounts = memory_lol::db::accounts::AccountTable::open(&accounts)?;
+            let screen_names = memory_lol::db::screen_names::ScreenNameTable::open(&screen_names)?;
+
+            let accounts_counts = accounts.get_counts()?;
+            println!("Accounts: {}", accounts_counts.id_count);
+            println!("Pairs: {}", accounts_counts.pair_count);
+
+            let screen_names_counts = screen_names.get_counts()?;
+            println!("Screen names: {}", screen_names_counts.screen_name_count);
+            println!(
+                "Screen name mappings: {}",
+                screen_names_counts.mapping_count
+            );
         }
         Command::DateCounts => {
             let date_counts = db.get_date_counts()?;
@@ -236,6 +255,30 @@ fn main() -> Result<(), Error> {
                 }
             }
         }
+        Command::Convert { output } => {
+            let out = memory_lol::db::accounts::AccountTable::open(&output)?;
+
+            for pair in db.pairs() {
+                let (id, screen_name, dates) = pair?;
+
+                if memory_lol::db::util::is_valid_screen_name(&screen_name) {
+                    out.insert(id, &screen_name, dates)?;
+                } else {
+                    log::error!("Invalid screen name ({}): {}", id, screen_name);
+                }
+            }
+        }
+        Command::Rebuild { input, output } => {
+            let input_db = memory_lol::db::accounts::AccountTable::open(&input)?;
+            let output_db =
+                memory_lol::db::screen_names::ScreenNameTable::rebuild(&output, &input_db)?;
+
+            println!(
+                "{:?}, {:?}",
+                input_db.get_estimated_key_count()?,
+                output_db.get_estimated_key_count()?
+            );
+        }
     }
 
     Ok(())
@@ -245,6 +288,8 @@ fn main() -> Result<(), Error> {
 pub enum Error {
     #[error("Application error")]
     App(#[from] memory_lol::error::Error),
+    #[error("Application database error")]
+    AppDb(#[from] memory_lol::db::Error),
     #[error("Import error")]
     Import(#[from] memory_lol::import::Error),
     #[error("I/O error")]
@@ -281,6 +326,15 @@ enum Command {
     Dump,
     /// Print account, screen name, and pair counts
     Stats,
+    /// Print account, screen name, and pair counts
+    NewStats {
+        /// Accounts table file path
+        #[clap(long)]
+        accounts: String,
+        /// Screen names table file path
+        #[clap(long)]
+        screen_names: String,
+    },
     /// Print counts for dates
     DateCounts,
     /// List the accounts with the most screen names
@@ -323,6 +377,19 @@ enum Command {
     Remove,
     /// Run validations on database
     Validate,
+    Convert {
+        /// Output
+        #[clap(long)]
+        output: String,
+    },
+    Rebuild {
+        /// Input
+        #[clap(long)]
+        input: String,
+        /// Output
+        #[clap(long)]
+        output: String,
+    },
 }
 
 fn select_log_level_filter(verbosity: i32) -> LevelFilter {
