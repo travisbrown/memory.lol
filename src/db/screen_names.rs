@@ -1,4 +1,4 @@
-use super::{table::Table, Error};
+use super::{accounts::AccountTable, table::Table, Error};
 use rocksdb::{IteratorMode, MergeOperands, Options, DB};
 use std::convert::TryInto;
 use std::path::Path;
@@ -53,6 +53,18 @@ impl Table for ScreenNameTable {
 }
 
 impl ScreenNameTable {
+    pub fn rebuild<P: AsRef<Path>>(path: P, accounts: &AccountTable) -> Result<Self, Error> {
+        let table = Self::open(path)?;
+
+        for pair in accounts.pairs() {
+            let (id, screen_name, _) = pair?;
+
+            table.insert(&screen_name, id)?;
+        }
+
+        Ok(table)
+    }
+
     pub fn lookup(&self, screen_name: &str) -> Result<Vec<u64>, Error> {
         let value = self.db.get_pinned(screen_name_to_key(screen_name))?;
         value
