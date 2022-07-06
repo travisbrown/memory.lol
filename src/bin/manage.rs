@@ -222,6 +222,20 @@ fn main() -> Result<(), Error> {
                 db.remove_pair(user_id, screen_name)?;
             }
         }
+        Command::Validate => {
+            let errors = db.validate_screen_names()?;
+
+            for (id, screen_name) in errors {
+                match id {
+                    Some(id) => {
+                        log::error!("Invalid account entry: {}, {}", id, screen_name);
+                    }
+                    None => {
+                        log::error!("Invalid screen name entry: {}", screen_name);
+                    }
+                }
+            }
+        }
     }
 
     Ok(())
@@ -307,6 +321,8 @@ enum Command {
     ImportMulti,
     /// Remove comma-separated ID-screen name pairs provided from stdin
     Remove,
+    /// Run validations on database
+    Validate,
 }
 
 fn select_log_level_filter(verbosity: i32) -> LevelFilter {

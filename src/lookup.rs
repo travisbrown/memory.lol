@@ -274,6 +274,16 @@ impl Lookup {
         key
     }
 
+    fn key_to_screen_name(key: &[u8]) -> Result<Option<&str>, Error> {
+        let screen_name = if key[0] == 1 {
+            Some(std::str::from_utf8(&key[1..])?)
+        } else {
+            None
+        };
+
+        Ok(screen_name)
+    }
+
     pub fn insert_pair(
         &self,
         id: u64,
@@ -297,6 +307,35 @@ impl Lookup {
         let key = Self::pair_to_key(id, screen_name);
 
         Ok(self.db.delete(key)?)
+    }
+
+    fn is_valid_screen_name(value: &str) -> bool {
+        value
+            .chars()
+            .all(|ch| ch.is_ascii_alphanumeric() || ch == '_')
+    }
+
+    pub fn validate_screen_names(&self) -> Result<Vec<(Option<u64>, String)>, Error> {
+        let iter = self.db.iterator(IteratorMode::Start);
+        let mut errors = vec![];
+
+        for (key, _) in iter {
+            if key[0] == 0 {
+                if let Some((id, screen_name)) = Self::key_to_pair(&key)? {
+                    if !Self::is_valid_screen_name(screen_name) {
+                        errors.push((Some(id), screen_name.to_string()));
+                    }
+                }
+            } else if key[0] == 1 {
+                if let Some(screen_name) = Self::key_to_screen_name(&key)? {
+                    if !Self::is_valid_screen_name(screen_name) {
+                        errors.push((None, screen_name.to_string()));
+                    }
+                }
+            }
+        }
+
+        Ok(errors)
     }
 
     fn merge(
