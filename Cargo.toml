@@ -12,6 +12,7 @@ edition = "2018"
 clap = { version = "3", features = ["derive"] }
 chrono = "0.4"
 csv = "1"
+lazy_static = "1"
 log = "0.4"
 priority-queue = "1"
 rocket = { version = "0.5.0-rc.2", features = ["json"] }

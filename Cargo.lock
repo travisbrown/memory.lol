@@ -819,6 +819,7 @@ dependencies = [
  "chrono",
  "clap",
  "csv",
+ "lazy_static",
  "log",
  "priority-queue",
  "rocket",
