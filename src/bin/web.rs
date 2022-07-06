@@ -8,6 +8,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 use std::collections::HashMap;
 
+const LOOKUP_BY_PREFIX_LIMIT: usize = 100;
+
 #[derive(Deserialize)]
 struct AppConfig {
     db: String,
@@ -100,6 +102,33 @@ fn by_screen_name(screen_name: String, state: &State<Database>) -> Result<Json<V
                     serde_json::to_value(ScreenNameResult { accounts })?,
                 );
             }
+        }
+
+        Ok(Json(serde_json::to_value(map)?))
+    } else if screen_name.ends_with("*") {
+        let mut map = Map::new();
+        let results = state.lookup_by_screen_name_prefix(
+            &screen_name[0..screen_name.len() - 1],
+            LOOKUP_BY_PREFIX_LIMIT,
+        )?;
+
+        for (screen_name, user_ids) in results {
+            let accounts = user_ids
+                .iter()
+                .map(|user_id| {
+                    let result = state.lookup_by_user_id(*user_id)?;
+
+                    Ok(Account {
+                        id: *user_id,
+                        screen_names: format_screen_names(result),
+                    })
+                })
+                .collect::<Result<Vec<_>, Error>>()?;
+
+            map.insert(
+                screen_name.to_string(),
+                serde_json::to_value(ScreenNameResult { accounts })?,
+            );
         }
 
         Ok(Json(serde_json::to_value(map)?))
