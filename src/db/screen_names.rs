@@ -73,6 +73,29 @@ impl ScreenNameTable {
             .unwrap_or_else(|| Ok(vec![]))
     }
 
+    pub fn lookup_by_prefix(
+        &self,
+        screen_name: &str,
+        limit: usize,
+    ) -> Result<Vec<(String, Vec<u64>)>, Error> {
+        let prefix = screen_name_to_key(screen_name);
+        let iter = self.db.prefix_iterator(&prefix);
+        let mut result = Vec::with_capacity(1);
+
+        for (key, value) in iter.take(limit) {
+            if key.starts_with(&prefix) {
+                let screen_name = key_to_screen_name(&key)?;
+                let ids = value_to_ids(&value)?;
+
+                result.push((screen_name.to_string(), ids));
+            } else {
+                break;
+            }
+        }
+
+        Ok(result)
+    }
+
     pub fn insert(&self, screen_name: &str, id: u64) -> Result<(), Error> {
         Ok(self
             .db
@@ -137,6 +160,10 @@ impl ScreenNameTable {
 fn screen_name_to_key(screen_name: &str) -> Vec<u8> {
     let form = screen_name.to_lowercase();
     form.as_bytes().to_vec()
+}
+
+fn key_to_screen_name(key: &[u8]) -> Result<&str, Error> {
+    Ok(std::str::from_utf8(key)?)
 }
 
 fn value_to_ids(value: &[u8]) -> Result<Vec<u64>, Error> {
