@@ -3,6 +3,7 @@ use rocksdb::{IteratorMode, MergeOperands, Options, DB};
 use std::convert::TryInto;
 use std::path::Path;
 
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ScreenNameTableCounts {
     pub screen_name_count: u64,
     pub mapping_count: u64,

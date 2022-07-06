@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use std::convert::TryInto;
 use std::path::Path;
 
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AccountTableCounts {
     pub id_count: u64,
     pub pair_count: u64,
