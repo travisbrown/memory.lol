@@ -10,16 +10,8 @@ pub enum Error {
     Io(#[from] std::io::Error),
     #[error("JSON error")]
     Json(#[from] serde_json::Error),
-    #[error("RocksDb error")]
-    Db(#[from] rocksdb::Error),
-    #[error("Invalid Twitter epoch day")]
-    InvalidDay(i64),
-    #[error("Invalid key")]
-    InvalidKey(Vec<u8>),
-    #[error("Invalid value")]
-    InvalidValue(Vec<u8>),
-    #[error("Invalid UTF-8 string")]
-    InvalidString(#[from] std::str::Utf8Error),
+    #[error("Database error")]
+    Db(#[from] super::db::Error),
 }
 
 impl<'r, 'o: 'r> Responder<'r, 'o> for Error {

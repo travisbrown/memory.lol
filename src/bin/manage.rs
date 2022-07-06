@@ -1,9 +1,8 @@
 use chrono::{TimeZone, Utc};
 use clap::Parser;
 use memory_lol::{
-    db::table::Table,
+    db::Database,
     import::{Session, UpdateMode},
-    lookup::Lookup,
 };
 use simplelog::LevelFilter;
 use std::fs::File;
@@ -13,7 +12,7 @@ use zstd::stream::read::Decoder;
 fn main() -> Result<(), Error> {
     let opts: Opts = Opts::parse();
     init_logging(opts.verbose)?;
-    let db = Lookup::new(&opts.db)?;
+    let db = Database::open(&opts.db)?;
 
     match opts.command {
         Command::LookupId { id } => {
@@ -34,7 +33,7 @@ fn main() -> Result<(), Error> {
             }
         }
         Command::Dump => {
-            for pair in db.pairs() {
+            for pair in db.accounts.pairs() {
                 let (id, screen_name, dates) = pair?;
 
                 println!(
@@ -50,39 +49,21 @@ fn main() -> Result<(), Error> {
             }
         }
         Command::Stats => {
-            let (pair_count, user_id_count, screen_name_count) = db.get_counts()?;
-
-            println!("Accounts: {}", user_id_count);
-            println!("Screen names: {}", screen_name_count);
-            println!("Pairs: {}", pair_count);
-        }
-        Command::NewStats {
-            accounts,
-            screen_names,
-        } => {
-            let accounts = memory_lol::db::accounts::AccountTable::open(&accounts)?;
-            let screen_names = memory_lol::db::screen_names::ScreenNameTable::open(&screen_names)?;
-
-            let accounts_counts = accounts.get_counts()?;
-            println!("Accounts: {}", accounts_counts.id_count);
-            println!("Pairs: {}", accounts_counts.pair_count);
-
-            let screen_names_counts = screen_names.get_counts()?;
-            println!("Screen names: {}", screen_names_counts.screen_name_count);
-            println!(
-                "Screen name mappings: {}",
-                screen_names_counts.mapping_count
-            );
+            let (account_counts, screen_name_counts) = db.get_counts()?;
+            println!("Accounts: {}", account_counts.id_count);
+            println!("Pairs: {}", account_counts.pair_count);
+            println!("Screen names: {}", screen_name_counts.screen_name_count);
+            println!("Screen name mappings: {}", screen_name_counts.mapping_count);
         }
         Command::DateCounts => {
-            let date_counts = db.get_date_counts()?;
+            let date_counts = db.accounts.get_date_counts()?;
 
             for (date, count) in date_counts {
                 println!("{},{}", date.format("%Y-%m-%d"), count);
             }
         }
         Command::MostScreenNames { count } => {
-            let most_screen_names = db.get_most_screen_names(count)?;
+            let most_screen_names = db.accounts.get_most_screen_names(count)?;
 
             for (id, screen_names) in most_screen_names {
                 println!("{},{},{}", id, screen_names.len(), screen_names.join(";"));
@@ -195,7 +176,7 @@ fn main() -> Result<(), Error> {
             }
         }
         Command::CompactRanges => {
-            db.compact_ranges()?;
+            db.accounts.compact_ranges()?;
         }
         Command::ImportMulti => {
             let stdin = std::io::stdin();
@@ -222,7 +203,7 @@ fn main() -> Result<(), Error> {
                 dates.sort();
                 dates.dedup();
 
-                db.insert_pair(user_id, screen_name, dates)?;
+                db.insert(user_id, screen_name, dates)?;
             }
         }
         Command::Remove => {
@@ -238,46 +219,8 @@ fn main() -> Result<(), Error> {
                     .get(1)
                     .ok_or_else(|| Error::InvalidImportLine(line.clone()))?;
 
-                db.remove_pair(user_id, screen_name)?;
+                db.accounts.remove(user_id, screen_name)?;
             }
-        }
-        Command::Validate => {
-            let errors = db.validate_screen_names()?;
-
-            for (id, screen_name) in errors {
-                match id {
-                    Some(id) => {
-                        log::error!("Invalid account entry: {}, {}", id, screen_name);
-                    }
-                    None => {
-                        log::error!("Invalid screen name entry: {}", screen_name);
-                    }
-                }
-            }
-        }
-        Command::Convert { output } => {
-            let out = memory_lol::db::accounts::AccountTable::open(&output)?;
-
-            for pair in db.pairs() {
-                let (id, screen_name, dates) = pair?;
-
-                if memory_lol::db::util::is_valid_screen_name(&screen_name) {
-                    out.insert(id, &screen_name, dates)?;
-                } else {
-                    log::error!("Invalid screen name ({}): {}", id, screen_name);
-                }
-            }
-        }
-        Command::Rebuild { input, output } => {
-            let input_db = memory_lol::db::accounts::AccountTable::open(&input)?;
-            let output_db =
-                memory_lol::db::screen_names::ScreenNameTable::rebuild(&output, &input_db)?;
-
-            println!(
-                "{:?}, {:?}",
-                input_db.get_estimated_key_count()?,
-                output_db.get_estimated_key_count()?
-            );
         }
     }
 
@@ -326,15 +269,6 @@ enum Command {
     Dump,
     /// Print account, screen name, and pair counts
     Stats,
-    /// Print account, screen name, and pair counts
-    NewStats {
-        /// Accounts table file path
-        #[clap(long)]
-        accounts: String,
-        /// Screen names table file path
-        #[clap(long)]
-        screen_names: String,
-    },
     /// Print counts for dates
     DateCounts,
     /// List the accounts with the most screen names
@@ -375,21 +309,6 @@ enum Command {
     ImportMulti,
     /// Remove comma-separated ID-screen name pairs provided from stdin
     Remove,
-    /// Run validations on database
-    Validate,
-    Convert {
-        /// Output
-        #[clap(long)]
-        output: String,
-    },
-    Rebuild {
-        /// Input
-        #[clap(long)]
-        input: String,
-        /// Output
-        #[clap(long)]
-        output: String,
-    },
 }
 
 fn select_log_level_filter(verbosity: i32) -> LevelFilter {

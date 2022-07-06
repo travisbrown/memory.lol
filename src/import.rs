@@ -1,4 +1,4 @@
-use crate::lookup::Lookup;
+use crate::db::Database;
 use chrono::{DateTime, NaiveDate, TimeZone, Utc};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -17,7 +17,7 @@ pub enum Error {
     #[error("JSON encoding error")]
     InvalidJson(serde_json::Value),
     #[error("Database error")]
-    Db(#[from] crate::error::Error),
+    Db(#[from] crate::db::Error),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -118,7 +118,7 @@ impl Session {
         snapshots.extend(&entry.snapshots);
     }
 
-    pub fn update(&self, db: &Lookup, mode: UpdateMode) -> Result<usize, Error> {
+    pub fn update(&self, db: &Database, mode: UpdateMode) -> Result<usize, Error> {
         let mut count = 0;
 
         for ((id, screen_name), snapshots) in &self.data {
@@ -128,7 +128,7 @@ impl Session {
 
             match mode {
                 UpdateMode::All => {
-                    db.insert_pair(*id, screen_name, dates)?;
+                    db.insert(*id, screen_name, dates)?;
                 }
 
                 UpdateMode::Range => {
@@ -147,7 +147,7 @@ impl Session {
                         range
                     };
 
-                    db.insert_pair(*id, screen_name, range)?;
+                    db.insert(*id, screen_name, range)?;
                 }
             }
 

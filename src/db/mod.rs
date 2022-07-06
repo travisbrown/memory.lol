@@ -8,7 +8,7 @@ use chrono::NaiveDate;
 use screen_names::ScreenNameTable;
 use std::collections::HashMap;
 use std::path::Path;
-use table::Table;
+pub use table::Table;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -27,8 +27,8 @@ pub enum Error {
 }
 
 pub struct Database {
-    accounts: AccountTable,
-    screen_names: ScreenNameTable,
+    pub accounts: AccountTable,
+    pub screen_names: ScreenNameTable,
 }
 
 impl Database {
@@ -47,10 +47,6 @@ impl Database {
             accounts: AccountTable::open(accounts_path)?,
             screen_names: ScreenNameTable::open(screen_names_path)?,
         })
-    }
-
-    pub fn pairs(&self) -> accounts::PairIterator<rocksdb::DBIterator> {
-        self.accounts.pairs()
     }
 
     pub fn get_counts(
@@ -93,14 +89,6 @@ impl Database {
         self.screen_names.insert(screen_name, id)?;
         Ok(())
     }
-
-    pub fn remove(&self, id: u64, screen_name: &str) -> Result<(), Error> {
-        self.accounts.remove(id, screen_name)
-    }
-
-    pub fn compact_ranges(&self) -> Result<(), Error> {
-        self.accounts.compact_ranges()
-    }
 }
 
 #[cfg(test)]
@@ -128,26 +116,31 @@ mod tests {
         ];
 
         let expected_counts = (
-            accounts::AccountTableCounts { id_count: 2, pair_count: 3 },
-            screen_names::ScreenNameTableCounts { screen_name_count: 2, mapping_count: 3 }
+            accounts::AccountTableCounts {
+                id_count: 2,
+                pair_count: 3,
+            },
+            screen_names::ScreenNameTableCounts {
+                screen_name_count: 2,
+                mapping_count: 3,
+            },
         );
-
 
         assert_eq!(db.lookup_by_screen_name("foo").unwrap(), vec![123, 456]);
         assert_eq!(db.lookup_by_user_id(123).unwrap(), expected_by_id);
         assert_eq!(db.get_counts().unwrap(), expected_counts);
         assert_eq!(
-            db.pairs().collect::<Result<Vec<_>, _>>().unwrap(),
+            db.accounts.pairs().collect::<Result<Vec<_>, _>>().unwrap(),
             expected_pairs
         );
 
-        db.compact_ranges().unwrap();
+        db.accounts.compact_ranges().unwrap();
 
         assert_eq!(db.lookup_by_screen_name("foo").unwrap(), vec![123, 456]);
         assert_eq!(db.lookup_by_user_id(123).unwrap(), expected_by_id);
         assert_eq!(db.get_counts().unwrap(), expected_counts);
         assert_eq!(
-            db.pairs().collect::<Result<Vec<_>, _>>().unwrap(),
+            db.accounts.pairs().collect::<Result<Vec<_>, _>>().unwrap(),
             expected_pairs
         );
     }
