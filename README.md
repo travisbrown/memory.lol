@@ -7,7 +7,7 @@
 
 This project is a tiny web service that provides historical information about social media accounts.
 
-It can currently be used to look up 418 million historical screen names for 346 million Twitter accounts.
+It can currently be used to look up 512 million historical screen names for 419 million Twitter accounts.
 Most of this data has been scraped from either the [Twitter Stream Grab][twitter-stream-grab] or the
 [Wayback Machine][wayback-machine] (both published by the [Internet Archive](https://archive.org/)).
 
