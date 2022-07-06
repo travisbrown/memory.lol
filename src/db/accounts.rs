@@ -273,8 +273,8 @@ impl<I: Iterator<Item = (Box<[u8]>, Box<[u8]>)>> Iterator for PairIterator<I> {
 
 impl<I: Iterator<Item = (Box<[u8]>, Box<[u8]>)>> PairIterator<I> {
     fn to_item(key: &[u8], value: &[u8]) -> <Self as Iterator>::Item {
-        let (id, screen_name) = key_to_pair(&key)?;
-        let dates = value_to_dates(&value)?;
+        let (id, screen_name) = key_to_pair(key)?;
+        let dates = value_to_dates(value)?;
 
         Ok((id, screen_name.to_string(), dates))
     }
@@ -301,7 +301,7 @@ fn pair_to_key(id: u64, screen_name: &str) -> Vec<u8> {
 }
 
 fn key_to_pair(key: &[u8]) -> Result<(u64, &str), Error> {
-    let id = key_prefix_to_id(&key)?;
+    let id = key_prefix_to_id(key)?;
     let screen_name = std::str::from_utf8(&key[8..])?;
 
     Ok((id, screen_name))
