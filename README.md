@@ -73,7 +73,7 @@ These date ranges will not generally represent the entire time that the screen n
 ## Other features
 
 The service is very minimal. One of these few things it does support is querying multiple screen names via a comma-separated list (for example: [`https://memory.lol/tw/jr_majewski,MayraFlores2022`](https://memory.lol/tw/jr_majewski,MayraFlores2022)).
-It also supports searching for a screen name prefix (for example: [`https://memory.lol/tw/tradwife*`](https://memory.lol/tw/tradwife*)).
+It also supports searching for a screen name prefix (currently limited to 100 results; for example: [`https://memory.lol/tw/tradwife*`](https://memory.lol/tw/tradwife*)).
 
 It currently only supports JSON output, but if you want a spreadsheet, for example, you can convert the JSON to CSV using a tool like [gojq][gojq]:
 
