@@ -1,7 +1,7 @@
 pub mod accounts;
 pub mod screen_names;
 pub mod table;
-mod util;
+pub mod util;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
