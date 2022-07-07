@@ -85,10 +85,15 @@ impl Session {
 
         for line in source.lines() {
             let line = line?;
-            let value = serde_json::from_str(&line)?;
-
-            if let Some(entry) = ScreenNameEntry::from_json_opt(&value) {
-                session.add_entry(&entry);
+            match serde_json::from_str(&line) {
+                Ok(value) => {
+                    if let Some(entry) = ScreenNameEntry::from_json_opt(&value) {
+                        session.add_entry(&entry);
+                    }
+                }
+                Err(error) => {
+                    log::warn!("JSON error: {}", error);
+                }
             }
         }
 
@@ -118,6 +123,21 @@ impl Session {
         snapshots.extend(&entry.snapshots);
     }
 
+    fn insert(
+        db: &Database,
+        id: u64,
+        screen_name: &str,
+        dates: Vec<NaiveDate>,
+    ) -> Result<(), Error> {
+        match db.insert(id, screen_name, dates) {
+            Err(crate::db::Error::InvalidScreenName(screen_name)) => {
+                log::warn!("Invalid screen name: {}", screen_name);
+                Ok(())
+            }
+            other => Ok(other?),
+        }
+    }
+
     pub fn update(&self, db: &Database, mode: UpdateMode) -> Result<usize, Error> {
         let mut count = 0;
 
@@ -128,7 +148,7 @@ impl Session {
 
             match mode {
                 UpdateMode::All => {
-                    db.insert(*id, screen_name, dates)?;
+                    Self::insert(db, *id, screen_name, dates)?;
                 }
 
                 UpdateMode::Range => {
@@ -147,7 +167,7 @@ impl Session {
                         range
                     };
 
-                    db.insert(*id, screen_name, range)?;
+                    Self::insert(db, *id, screen_name, range)?;
                 }
             }
 
