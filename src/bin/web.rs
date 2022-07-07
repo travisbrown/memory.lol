@@ -2,10 +2,11 @@
 extern crate rocket;
 
 use chrono::NaiveDate;
+use indexmap::IndexMap;
 use memory_lol::{db::Database, error::Error};
 use rocket::{fairing::AdHoc, serde::json::Json, State};
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value};
 use std::collections::HashMap;
 
 const LOOKUP_BY_PREFIX_LIMIT: usize = 100;
@@ -24,10 +25,12 @@ struct ScreenNameResult {
 struct Account {
     id: u64,
     #[serde(rename = "screen-names")]
-    screen_names: Value,
+    screen_names: IndexMap<String, Option<Vec<NaiveDate>>>,
 }
 
-fn format_screen_names(result: HashMap<String, Vec<NaiveDate>>) -> Value {
+fn format_screen_names(
+    result: HashMap<String, Vec<NaiveDate>>,
+) -> IndexMap<String, Option<Vec<NaiveDate>>> {
     let mut sorted = result
         .into_iter()
         .map(|(screen_name, mut dates)| {
@@ -41,9 +44,9 @@ fn format_screen_names(result: HashMap<String, Vec<NaiveDate>>) -> Value {
 
             (screen_name, value)
         })
-        .collect::<Vec<_>>();
+        .collect::<IndexMap<_, _>>();
 
-    sorted.sort_by(|(screen_name_a, dates_a), (screen_name_b, dates_b)| {
+    sorted.sort_by(|screen_name_a, dates_a, screen_name_b, dates_b| {
         dates_a
             .as_ref()
             .and_then(|dates| dates.get(0))
@@ -51,19 +54,7 @@ fn format_screen_names(result: HashMap<String, Vec<NaiveDate>>) -> Value {
             .then_with(|| screen_name_a.cmp(screen_name_b))
     });
 
-    let mut screen_names = Map::new();
-
-    for (screen_name, dates) in sorted {
-        screen_names.insert(
-            screen_name.to_string(),
-            json!(dates.map(|dates| dates
-                .iter()
-                .map(|date| format!("{}", date))
-                .collect::<Vec<_>>())),
-        );
-    }
-
-    json!(screen_names)
+    sorted
 }
 
 #[get("/tw/id/<user_id>")]
