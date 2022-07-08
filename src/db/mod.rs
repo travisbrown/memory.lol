@@ -39,7 +39,7 @@ impl Database {
         )
     }
 
-    pub fn open_from_tables<P: AsRef<Path>>(
+    fn open_from_tables<P: AsRef<Path>>(
         accounts_path: P,
         screen_names_path: P,
     ) -> Result<Self, Error> {
@@ -88,6 +88,10 @@ impl Database {
         self.accounts.insert(id, screen_name, dates)?;
         self.screen_names.insert(screen_name, id)?;
         Ok(())
+    }
+
+    pub fn rebuild_index(&mut self) -> Result<(), Error> {
+        self.screen_names.rebuild(&self.accounts)
     }
 }
 

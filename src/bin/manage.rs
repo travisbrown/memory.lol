@@ -12,7 +12,7 @@ use zstd::stream::read::Decoder;
 fn main() -> Result<(), Error> {
     let opts: Opts = Opts::parse();
     init_logging(opts.verbose)?;
-    let db = Database::open(&opts.db)?;
+    let mut db = Database::open(&opts.db)?;
 
     match opts.command {
         Command::LookupId { id } => {
@@ -229,6 +229,9 @@ fn main() -> Result<(), Error> {
                 db.accounts.remove(user_id, screen_name)?;
             }
         }
+        Command::RebuildIndex => {
+            db.rebuild_index()?;
+        }
     }
 
     Ok(())
@@ -316,6 +319,8 @@ enum Command {
     ImportMulti,
     /// Remove comma-separated ID-screen name pairs provided from stdin
     Remove,
+    /// Rebuild screen name index
+    RebuildIndex,
 }
 
 fn select_log_level_filter(verbosity: i32) -> LevelFilter {

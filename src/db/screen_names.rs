@@ -10,30 +10,28 @@ pub struct ScreenNameTableCounts {
 }
 
 pub struct ScreenNameTable {
-    db: DB,
+    db: Option<DB>,
 }
 
 impl Table for ScreenNameTable {
     type Counts = ScreenNameTableCounts;
 
     fn underlying(&self) -> &DB {
-        &self.db
+        &self.db.as_ref().unwrap()
     }
 
     fn open<P: AsRef<Path>>(path: P) -> Result<Self, Error> {
-        let mut options = Options::default();
-        options.create_if_missing(true);
-        options.set_merge_operator_associative("merge", Self::merge);
+        let options = Self::make_options();
         let db = DB::open(&options, path)?;
 
-        Ok(Self { db })
+        Ok(Self { db: Some(db) })
     }
 
     fn get_counts(&self) -> Result<Self::Counts, Error> {
         let mut screen_name_count = 0;
         let mut mapping_count = 0;
 
-        let iter = self.db.iterator(IteratorMode::Start);
+        let iter = self.db.as_ref().unwrap().iterator(IteratorMode::Start);
 
         for (_, value) in iter {
             screen_name_count += 1;
@@ -54,20 +52,38 @@ impl Table for ScreenNameTable {
 }
 
 impl ScreenNameTable {
-    pub fn rebuild<P: AsRef<Path>>(path: P, accounts: &AccountTable) -> Result<Self, Error> {
-        let table = Self::open(path)?;
+    fn make_options() -> Options {
+        let mut options = Options::default();
+        options.create_if_missing(true);
+        options.set_merge_operator_associative("merge", Self::merge);
+        options
+    }
+
+    pub fn rebuild(&mut self, accounts: &AccountTable) -> Result<(), Error> {
+        let path = self.db.as_ref().unwrap().path().to_path_buf();
+        self.db.take().unwrap();
+
+        let options = Self::make_options();
+
+        DB::destroy(&options, &path)?;
+
+        self.db = Some(DB::open(&options, &path)?);
 
         for pair in accounts.pairs() {
             let (id, screen_name, _) = pair?;
 
-            table.insert(&screen_name, id)?;
+            self.insert(&screen_name, id)?;
         }
 
-        Ok(table)
+        Ok(())
     }
 
     pub fn lookup(&self, screen_name: &str) -> Result<Vec<u64>, Error> {
-        let value = self.db.get_pinned(screen_name_to_key(screen_name))?;
+        let value = self
+            .db
+            .as_ref()
+            .unwrap()
+            .get_pinned(screen_name_to_key(screen_name))?;
         value
             .as_ref()
             .map(|value| value_to_ids(value))
@@ -80,7 +96,7 @@ impl ScreenNameTable {
         limit: usize,
     ) -> Result<Vec<(String, Vec<u64>)>, Error> {
         let prefix = screen_name_to_key(screen_name);
-        let iter = self.db.prefix_iterator(&prefix);
+        let iter = self.db.as_ref().unwrap().prefix_iterator(&prefix);
         let mut result = Vec::with_capacity(1);
 
         for (key, value) in iter.take(limit) {
@@ -100,6 +116,8 @@ impl ScreenNameTable {
     pub fn insert(&self, screen_name: &str, id: u64) -> Result<(), Error> {
         Ok(self
             .db
+            .as_ref()
+            .unwrap()
             .merge(screen_name_to_key(screen_name), id.to_be_bytes())?)
     }
 
