@@ -1,6 +1,11 @@
-use super::{accounts::AccountTable, table::Table, Error};
+use super::{
+    accounts::AccountTable,
+    table::{Mode, Table, Writeable},
+    Error,
+};
 use rocksdb::{IteratorMode, MergeOperands, Options, DB};
 use std::convert::TryInto;
+use std::marker::PhantomData;
 use std::path::Path;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -9,22 +14,16 @@ pub struct ScreenNameTableCounts {
     pub mapping_count: u64,
 }
 
-pub struct ScreenNameTable {
+pub struct ScreenNameTable<M> {
     db: Option<DB>,
+    mode: PhantomData<M>,
 }
 
-impl Table for ScreenNameTable {
+impl<M> Table for ScreenNameTable<M> {
     type Counts = ScreenNameTableCounts;
 
     fn underlying(&self) -> &DB {
         &self.db.as_ref().unwrap()
-    }
-
-    fn open<P: AsRef<Path>>(path: P) -> Result<Self, Error> {
-        let options = Self::make_options();
-        let db = DB::open(&options, path)?;
-
-        Ok(Self { db: Some(db) })
     }
 
     fn get_counts(&self) -> Result<Self::Counts, Error> {
@@ -51,31 +50,12 @@ impl Table for ScreenNameTable {
     }
 }
 
-impl ScreenNameTable {
+impl<M> ScreenNameTable<M> {
     fn make_options() -> Options {
         let mut options = Options::default();
         options.create_if_missing(true);
-        options.set_merge_operator_associative("merge", Self::merge);
+        options.set_merge_operator_associative("merge", merge);
         options
-    }
-
-    pub fn rebuild(&mut self, accounts: &AccountTable) -> Result<(), Error> {
-        let path = self.db.as_ref().unwrap().path().to_path_buf();
-        self.db.take().unwrap();
-
-        let options = Self::make_options();
-
-        DB::destroy(&options, &path)?;
-
-        self.db = Some(DB::open(&options, &path)?);
-
-        for pair in accounts.pairs() {
-            let (id, screen_name, _) = pair?;
-
-            self.insert(&screen_name, id)?;
-        }
-
-        Ok(())
     }
 
     pub fn lookup(&self, screen_name: &str) -> Result<Vec<u64>, Error> {
@@ -112,7 +92,25 @@ impl ScreenNameTable {
 
         Ok(result)
     }
+}
 
+impl<M: Mode> ScreenNameTable<M> {
+    pub fn open<P: AsRef<Path>>(path: P) -> Result<Self, Error> {
+        let options = Self::make_options();
+        let db = if M::is_read_only() {
+            DB::open_for_read_only(&options, path, true)?
+        } else {
+            DB::open(&options, path)?
+        };
+
+        Ok(Self {
+            db: Some(db),
+            mode: PhantomData,
+        })
+    }
+}
+
+impl ScreenNameTable<Writeable> {
     pub fn insert(&self, screen_name: &str, id: u64) -> Result<(), Error> {
         Ok(self
             .db
@@ -121,58 +119,77 @@ impl ScreenNameTable {
             .merge(screen_name_to_key(screen_name), id.to_be_bytes())?)
     }
 
-    fn merge(
-        _new_key: &[u8],
-        existing_val: Option<&[u8]>,
-        operands: &MergeOperands,
-    ) -> Option<Vec<u8>> {
-        let mut new_val = match existing_val {
-            Some(bytes) => bytes.to_vec(),
-            None => Vec::with_capacity(operands.len() * 8),
-        };
+    pub fn rebuild<Mode>(&mut self, accounts: &AccountTable<Mode>) -> Result<(), Error> {
+        let path = self.db.as_ref().unwrap().path().to_path_buf();
+        self.db.take().unwrap();
 
-        for operand in operands.iter() {
-            Self::merge_for_screen_name(&mut new_val, operand);
+        let options = Self::make_options();
+
+        DB::destroy(&options, &path)?;
+
+        self.db = Some(DB::open(&options, &path)?);
+
+        for pair in accounts.pairs() {
+            let (id, screen_name, _) = pair?;
+
+            self.insert(&screen_name, id)?;
         }
 
-        Some(new_val)
+        Ok(())
+    }
+}
+
+fn merge(
+    _new_key: &[u8],
+    existing_val: Option<&[u8]>,
+    operands: &MergeOperands,
+) -> Option<Vec<u8>> {
+    let mut new_val = match existing_val {
+        Some(bytes) => bytes.to_vec(),
+        None => Vec::with_capacity(operands.len() * 8),
+    };
+
+    for operand in operands.iter() {
+        merge_for_screen_name(&mut new_val, operand);
     }
 
-    fn merge_for_screen_name(a: &mut Vec<u8>, b: &[u8]) {
-        let original_len = a.len();
-        let mut i = 0;
+    Some(new_val)
+}
 
-        while i < b.len() {
-            let bytes: [u8; 8] = match b[i..i + 8].try_into() {
+fn merge_for_screen_name(a: &mut Vec<u8>, b: &[u8]) {
+    let original_len = a.len();
+    let mut i = 0;
+
+    while i < b.len() {
+        let bytes: [u8; 8] = match b[i..i + 8].try_into() {
+            Ok(bytes) => bytes,
+            Err(error) => {
+                log::error!("{}", error);
+                return;
+            }
+        };
+        let next_b = u64::from_be_bytes(bytes);
+
+        let mut found = false;
+        let mut j = 0;
+
+        while !found && j < original_len {
+            let bytes = match a[j..j + 8].try_into() {
                 Ok(bytes) => bytes,
                 Err(error) => {
                     log::error!("{}", error);
                     return;
                 }
             };
-            let next_b = u64::from_be_bytes(bytes);
-
-            let mut found = false;
-            let mut j = 0;
-
-            while !found && j < original_len {
-                let bytes = match a[j..j + 8].try_into() {
-                    Ok(bytes) => bytes,
-                    Err(error) => {
-                        log::error!("{}", error);
-                        return;
-                    }
-                };
-                let next_a = u64::from_be_bytes(bytes);
-                found = next_a == next_b;
-                j += 8;
-            }
-
-            if !found {
-                a.extend_from_slice(&b[i..i + 8]);
-            }
-            i += 8;
+            let next_a = u64::from_be_bytes(bytes);
+            found = next_a == next_b;
+            j += 8;
         }
+
+        if !found {
+            a.extend_from_slice(&b[i..i + 8]);
+        }
+        i += 8;
     }
 }
 

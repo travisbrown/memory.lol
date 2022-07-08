@@ -3,7 +3,10 @@ extern crate rocket;
 
 use chrono::NaiveDate;
 use indexmap::IndexMap;
-use memory_lol::{db::Database, error::Error};
+use memory_lol::{
+    db::{table::ReadOnly, Database},
+    error::Error,
+};
 use rocket::{fairing::AdHoc, serde::json::Json, State};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
@@ -58,7 +61,7 @@ fn format_screen_names(
 }
 
 #[get("/tw/id/<user_id>")]
-fn by_user_id(user_id: u64, state: &State<Database>) -> Result<Json<Account>, Error> {
+fn by_user_id(user_id: u64, state: &State<Database<ReadOnly>>) -> Result<Json<Account>, Error> {
     let result = state.lookup_by_user_id(user_id)?;
 
     Ok(Json(Account {
@@ -68,7 +71,10 @@ fn by_user_id(user_id: u64, state: &State<Database>) -> Result<Json<Account>, Er
 }
 
 #[get("/tw/<screen_name>")]
-fn by_screen_name(screen_name: String, state: &State<Database>) -> Result<Json<Value>, Error> {
+fn by_screen_name(
+    screen_name: String,
+    state: &State<Database<ReadOnly>>,
+) -> Result<Json<Value>, Error> {
     if screen_name.contains(',') {
         let mut map = Map::new();
 
@@ -148,7 +154,7 @@ fn rocket() -> _ {
         .attach(AdHoc::try_on_ignite("Open database", |rocket| async {
             match rocket
                 .state::<AppConfig>()
-                .and_then(|config| Database::open(&config.db).ok())
+                .and_then(|config| Database::<ReadOnly>::open(&config.db).ok())
             {
                 Some(db) => Ok(rocket.manage(db)),
                 None => Err(rocket),

@@ -1,4 +1,4 @@
-use crate::db::Database;
+use crate::db::{table::Writeable, Database};
 use chrono::{DateTime, NaiveDate, TimeZone, Utc};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -124,7 +124,7 @@ impl Session {
     }
 
     fn insert(
-        db: &Database,
+        db: &Database<Writeable>,
         id: u64,
         screen_name: &str,
         dates: Vec<NaiveDate>,
@@ -138,7 +138,7 @@ impl Session {
         }
     }
 
-    pub fn update(&self, db: &Database, mode: UpdateMode) -> Result<usize, Error> {
+    pub fn update(&self, db: &Database<Writeable>, mode: UpdateMode) -> Result<usize, Error> {
         let mut count = 0;
 
         for ((id, screen_name), snapshots) in &self.data {

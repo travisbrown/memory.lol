@@ -1,7 +1,7 @@
 use chrono::{TimeZone, Utc};
 use clap::Parser;
 use memory_lol::{
-    db::{Database, Table},
+    db::{Database, ReadOnly, Table, Writeable},
     import::{Session, UpdateMode},
 };
 use simplelog::LevelFilter;
@@ -12,10 +12,10 @@ use zstd::stream::read::Decoder;
 fn main() -> Result<(), Error> {
     let opts: Opts = Opts::parse();
     init_logging(opts.verbose)?;
-    let mut db = Database::open(&opts.db)?;
 
     match opts.command {
         Command::LookupId { id } => {
+            let db = Database::<ReadOnly>::open(&opts.db)?;
             let result = db.lookup_by_user_id(id)?;
             let mut results = result.iter().collect::<Vec<_>>();
             results.sort_by_key(|(screen_name, _)| screen_name.to_string());
@@ -33,6 +33,7 @@ fn main() -> Result<(), Error> {
             }
         }
         Command::Dump => {
+            let db = Database::<ReadOnly>::open(&opts.db)?;
             for pair in db.accounts.pairs() {
                 let (id, screen_name, dates) = pair?;
 
@@ -49,6 +50,7 @@ fn main() -> Result<(), Error> {
             }
         }
         Command::Stats => {
+            let db = Database::<ReadOnly>::open(&opts.db)?;
             if let Some(count) = db.accounts.get_estimated_key_count()? {
                 println!("Estimated account keys: {}", count);
             }
@@ -63,6 +65,7 @@ fn main() -> Result<(), Error> {
             println!("Screen name mappings: {}", screen_name_counts.mapping_count);
         }
         Command::DateCounts => {
+            let db = Database::<ReadOnly>::open(&opts.db)?;
             let date_counts = db.accounts.get_date_counts()?;
 
             for (date, count) in date_counts {
@@ -70,6 +73,7 @@ fn main() -> Result<(), Error> {
             }
         }
         Command::MostScreenNames { count } => {
+            let db = Database::<ReadOnly>::open(&opts.db)?;
             let most_screen_names = db.accounts.get_most_screen_names(count)?;
 
             for (id, screen_names) in most_screen_names {
@@ -77,6 +81,7 @@ fn main() -> Result<(), Error> {
             }
         }
         Command::ImportMentions { input, zst } => {
+            let db = Database::<Writeable>::open(&opts.db)?;
             let file = File::open(input)?;
 
             let source: Box<dyn Read> = if zst {
@@ -91,6 +96,7 @@ fn main() -> Result<(), Error> {
             log::info!("Updated {} entries", count);
         }
         Command::ImportJson { input, zst } => {
+            let db = Database::<Writeable>::open(&opts.db)?;
             let file = File::open(input)?;
 
             let source: Box<dyn Read> = if zst {
@@ -107,6 +113,7 @@ fn main() -> Result<(), Error> {
             log::info!("Updated {} entries", count);
         }
         Command::ImportBatch { input, prefix } => {
+            let db = Database::<Writeable>::open(&opts.db)?;
             let prefix = prefix.as_ref();
 
             let mut paths = std::fs::read_dir(&input)?
@@ -183,9 +190,11 @@ fn main() -> Result<(), Error> {
             }
         }
         Command::CompactRanges => {
+            let db = Database::<Writeable>::open(&opts.db)?;
             db.accounts.compact_ranges()?;
         }
         Command::ImportMulti => {
+            let db = Database::<Writeable>::open(&opts.db)?;
             let stdin = std::io::stdin();
             for line in stdin.lock().lines() {
                 let line = line?;
@@ -214,6 +223,7 @@ fn main() -> Result<(), Error> {
             }
         }
         Command::Remove => {
+            let db = Database::<Writeable>::open(&opts.db)?;
             let stdin = std::io::stdin();
             for line in stdin.lock().lines() {
                 let line = line?;
@@ -230,6 +240,7 @@ fn main() -> Result<(), Error> {
             }
         }
         Command::RebuildIndex => {
+            let mut db = Database::<Writeable>::open(&opts.db)?;
             db.rebuild_index()?;
         }
     }

@@ -8,7 +8,7 @@ use chrono::NaiveDate;
 use screen_names::ScreenNameTable;
 use std::collections::HashMap;
 use std::path::Path;
-pub use table::Table;
+pub use table::{Mode, ReadOnly, Table, Writeable};
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -26,29 +26,12 @@ pub enum Error {
     InvalidScreenName(String),
 }
 
-pub struct Database {
-    pub accounts: AccountTable,
-    pub screen_names: ScreenNameTable,
+pub struct Database<M> {
+    pub accounts: AccountTable<M>,
+    pub screen_names: ScreenNameTable<M>,
 }
 
-impl Database {
-    pub fn open<P: AsRef<Path>>(base: P) -> Result<Self, Error> {
-        Self::open_from_tables(
-            base.as_ref().join("accounts"),
-            base.as_ref().join("screen-names"),
-        )
-    }
-
-    fn open_from_tables<P: AsRef<Path>>(
-        accounts_path: P,
-        screen_names_path: P,
-    ) -> Result<Self, Error> {
-        Ok(Self {
-            accounts: AccountTable::open(accounts_path)?,
-            screen_names: ScreenNameTable::open(screen_names_path)?,
-        })
-    }
-
+impl<M> Database<M> {
     pub fn get_counts(
         &self,
     ) -> Result<
@@ -83,7 +66,28 @@ impl Database {
         self.screen_names
             .lookup_by_prefix(screen_name_prefix, limit)
     }
+}
 
+impl<M: Mode> Database<M> {
+    pub fn open<P: AsRef<Path>>(base: P) -> Result<Self, Error> {
+        Self::open_from_tables(
+            base.as_ref().join("accounts"),
+            base.as_ref().join("screen-names"),
+        )
+    }
+
+    fn open_from_tables<P: AsRef<Path>>(
+        accounts_path: P,
+        screen_names_path: P,
+    ) -> Result<Self, Error> {
+        Ok(Self {
+            accounts: AccountTable::open(accounts_path)?,
+            screen_names: ScreenNameTable::open(screen_names_path)?,
+        })
+    }
+}
+
+impl Database<Writeable> {
     pub fn insert(&self, id: u64, screen_name: &str, dates: Vec<NaiveDate>) -> Result<(), Error> {
         self.accounts.insert(id, screen_name, dates)?;
         self.screen_names.insert(screen_name, id)?;

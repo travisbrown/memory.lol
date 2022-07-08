@@ -1,8 +1,13 @@
-use super::{table::Table, util::is_valid_screen_name, Error};
+use super::{
+    table::{Mode, Table, Writeable},
+    util::is_valid_screen_name,
+    Error,
+};
 use chrono::{Duration, NaiveDate};
 use rocksdb::{DBIterator, IteratorMode, MergeOperands, Options, DB};
 use std::collections::HashMap;
 use std::convert::TryInto;
+use std::marker::PhantomData;
 use std::path::Path;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -11,24 +16,16 @@ pub struct AccountTableCounts {
     pub pair_count: u64,
 }
 
-pub struct AccountTable {
+pub struct AccountTable<M> {
     db: DB,
+    mode: PhantomData<M>,
 }
 
-impl Table for AccountTable {
+impl<M> Table for AccountTable<M> {
     type Counts = AccountTableCounts;
 
     fn underlying(&self) -> &DB {
         &self.db
-    }
-
-    fn open<P: AsRef<Path>>(path: P) -> Result<Self, Error> {
-        let mut options = Options::default();
-        options.create_if_missing(true);
-        options.set_merge_operator_associative("merge", Self::merge);
-        let db = DB::open(&options, path)?;
-
-        Ok(Self { db })
     }
 
     fn get_counts(&self) -> Result<Self::Counts, Error> {
@@ -54,7 +51,7 @@ impl Table for AccountTable {
     }
 }
 
-impl AccountTable {
+impl<M> AccountTable<M> {
     pub fn pairs(&self) -> PairIterator<DBIterator> {
         PairIterator {
             underlying: self.db.iterator(IteratorMode::Start),
@@ -77,28 +74,6 @@ impl AccountTable {
         }
 
         Ok(result)
-    }
-
-    pub fn insert(&self, id: u64, screen_name: &str, dates: Vec<NaiveDate>) -> Result<(), Error> {
-        if is_valid_screen_name(screen_name) {
-            let mut value = Vec::with_capacity(2 * dates.len());
-
-            for date in dates {
-                value.extend_from_slice(&date_to_day_id(&date)?.to_be_bytes());
-            }
-
-            self.db.merge(pair_to_key(id, screen_name), value)?;
-
-            Ok(())
-        } else {
-            Err(Error::InvalidScreenName(screen_name.to_string()))
-        }
-    }
-
-    pub fn remove(&self, id: u64, screen_name: &str) -> Result<(), Error> {
-        let key = pair_to_key(id, screen_name);
-
-        Ok(self.db.delete(key)?)
     }
 
     pub fn get_date_counts(&self) -> Result<Vec<(NaiveDate, u64)>, Error> {
@@ -149,6 +124,49 @@ impl AccountTable {
 
         Ok(queue.into_descending_sorted_vec())
     }
+}
+
+impl<M: Mode> AccountTable<M> {
+    pub fn open<P: AsRef<Path>>(path: P) -> Result<Self, Error> {
+        let mut options = Options::default();
+        options.create_if_missing(true);
+        options.set_merge_operator_associative("merge", merge);
+
+        let db = if M::is_read_only() {
+            DB::open_for_read_only(&options, path, true)?
+        } else {
+            DB::open(&options, path)?
+        };
+
+        Ok(Self {
+            db,
+            mode: PhantomData,
+        })
+    }
+}
+
+impl AccountTable<Writeable> {
+    pub fn insert(&self, id: u64, screen_name: &str, dates: Vec<NaiveDate>) -> Result<(), Error> {
+        if is_valid_screen_name(screen_name) {
+            let mut value = Vec::with_capacity(2 * dates.len());
+
+            for date in dates {
+                value.extend_from_slice(&date_to_day_id(&date)?.to_be_bytes());
+            }
+
+            self.db.merge(pair_to_key(id, screen_name), value)?;
+
+            Ok(())
+        } else {
+            Err(Error::InvalidScreenName(screen_name.to_string()))
+        }
+    }
+
+    pub fn remove(&self, id: u64, screen_name: &str) -> Result<(), Error> {
+        let key = pair_to_key(id, screen_name);
+
+        Ok(self.db.delete(key)?)
+    }
 
     pub fn compact_ranges(&self) -> Result<(), Error> {
         let iter = self.db.iterator(IteratorMode::Start);
@@ -188,76 +206,62 @@ impl AccountTable {
 
         Ok(())
     }
+}
 
-    pub fn validate_screen_names(&self) -> Result<Vec<(u64, String)>, Error> {
-        let iter = self.db.iterator(IteratorMode::Start);
-        let mut errors = vec![];
+fn merge(
+    _new_key: &[u8],
+    existing_val: Option<&[u8]>,
+    operands: &MergeOperands,
+) -> Option<Vec<u8>> {
+    let mut new_val = match existing_val {
+        Some(bytes) => bytes.to_vec(),
+        None => Vec::with_capacity(operands.len() * 2),
+    };
 
-        for (key, _) in iter {
-            let (id, screen_name) = key_to_pair(&key)?;
+    for operand in operands.iter() {
+        merge_for_pair(&mut new_val, operand);
+    }
 
-            if !is_valid_screen_name(screen_name) {
-                errors.push((id, screen_name.to_string()));
+    Some(new_val)
+}
+
+fn merge_for_pair(a: &mut Vec<u8>, b: &[u8]) {
+    let original_len = a.len();
+    let mut i = 0;
+
+    while i < b.len() {
+        let bytes: [u8; 2] = match b[i..i + 2].try_into() {
+            Ok(bytes) => bytes,
+            Err(error) => {
+                log::error!("{}", error);
+                return;
             }
-        }
-
-        Ok(errors)
-    }
-
-    fn merge(
-        _new_key: &[u8],
-        existing_val: Option<&[u8]>,
-        operands: &MergeOperands,
-    ) -> Option<Vec<u8>> {
-        let mut new_val = match existing_val {
-            Some(bytes) => bytes.to_vec(),
-            None => Vec::with_capacity(operands.len() * 2),
         };
+        let next_b = u16::from_be_bytes(bytes);
 
-        for operand in operands.iter() {
-            Self::merge_for_pair(&mut new_val, operand);
-        }
+        let mut found = false;
+        let mut j = 0;
 
-        Some(new_val)
-    }
-
-    fn merge_for_pair(a: &mut Vec<u8>, b: &[u8]) {
-        let original_len = a.len();
-        let mut i = 0;
-
-        while i < b.len() {
-            let bytes: [u8; 2] = match b[i..i + 2].try_into() {
+        while !found && j < original_len {
+            let bytes = match a[j..j + 2].try_into() {
                 Ok(bytes) => bytes,
                 Err(error) => {
                     log::error!("{}", error);
                     return;
                 }
             };
-            let next_b = u16::from_be_bytes(bytes);
-
-            let mut found = false;
-            let mut j = 0;
-
-            while !found && j < original_len {
-                let bytes = match a[j..j + 2].try_into() {
-                    Ok(bytes) => bytes,
-                    Err(error) => {
-                        log::error!("{}", error);
-                        return;
-                    }
-                };
-                let next_a = u16::from_be_bytes(bytes);
-                found = next_a == next_b;
-                j += 2;
-            }
-
-            if !found {
-                a.extend_from_slice(&b[i..i + 2]);
-            }
-            i += 2;
+            let next_a = u16::from_be_bytes(bytes);
+            found = next_a == next_b;
+            j += 2;
         }
+
+        if !found {
+            a.extend_from_slice(&b[i..i + 2]);
+        }
+        i += 2;
     }
 }
+
 pub struct PairIterator<I> {
     underlying: I,
 }
