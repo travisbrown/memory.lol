@@ -33,9 +33,9 @@ impl<M> Table for AccountTable<M> {
         let mut id_count = 0;
         let mut last_id = 0;
 
-        let iter = self.db.iterator(IteratorMode::Start);
+        let mut iter = self.db.iterator(IteratorMode::Start);
 
-        for (key, _) in iter {
+        for (key, _) in iter.by_ref() {
             pair_count += 1;
             let id = key_prefix_to_id(&key)?;
             if id != last_id {
@@ -43,6 +43,8 @@ impl<M> Table for AccountTable<M> {
                 last_id = id;
             }
         }
+
+        iter.status()?;
 
         Ok(Self::Counts {
             id_count,
@@ -52,7 +54,7 @@ impl<M> Table for AccountTable<M> {
 }
 
 impl<M> AccountTable<M> {
-    pub fn pairs(&self) -> PairIterator<DBIterator> {
+    pub fn pairs(&self) -> PairIterator {
         PairIterator {
             underlying: self.db.iterator(IteratorMode::Start),
         }
@@ -60,10 +62,10 @@ impl<M> AccountTable<M> {
 
     pub fn lookup(&self, id: u64) -> Result<HashMap<String, Vec<NaiveDate>>, Error> {
         let prefix = id_to_key_prefix(id);
-        let iter = self.db.prefix_iterator(prefix);
+        let mut iter = self.db.prefix_iterator(prefix);
         let mut result = HashMap::new();
 
-        for (key, value) in iter {
+        for (key, value) in iter.by_ref() {
             let (next_id, next_screen_name) = key_to_pair(&key)?;
             if next_id == id {
                 let dates = value_to_dates(&value)?;
@@ -73,14 +75,16 @@ impl<M> AccountTable<M> {
             }
         }
 
+        iter.status()?;
+
         Ok(result)
     }
 
     pub fn get_date_counts(&self) -> Result<Vec<(NaiveDate, u64)>, Error> {
         let mut map = HashMap::new();
-        let iter = self.db.iterator(IteratorMode::Start);
+        let mut iter = self.db.iterator(IteratorMode::Start);
 
-        for (_, value) in iter {
+        for (_, value) in iter.by_ref() {
             let dates = value_to_dates(&value)?;
 
             for date in dates {
@@ -88,6 +92,8 @@ impl<M> AccountTable<M> {
                 *count += 1;
             }
         }
+
+        iter.status()?;
 
         let mut result = map.into_iter().collect::<Vec<_>>();
         result.sort();
@@ -97,11 +103,11 @@ impl<M> AccountTable<M> {
 
     pub fn get_most_screen_names(&self, k: usize) -> Result<Vec<(u64, Vec<String>)>, Error> {
         let mut queue = priority_queue::DoublePriorityQueue::with_capacity(k);
-        let iter = self.db.iterator(IteratorMode::Start);
+        let mut iter = self.db.iterator(IteratorMode::Start);
         let mut last_id = 0;
         let mut current: Vec<String> = vec![];
 
-        for (key, _) in iter {
+        for (key, _) in iter.by_ref() {
             let (id, screen_name) = key_to_pair(&key)?;
             if id != last_id {
                 let min = queue.peek_min().map(|(_, count)| *count).unwrap_or(0);
@@ -121,6 +127,8 @@ impl<M> AccountTable<M> {
             }
             current.push(screen_name.to_string());
         }
+
+        iter.status()?;
 
         Ok(queue.into_descending_sorted_vec())
     }
@@ -169,9 +177,9 @@ impl AccountTable<Writeable> {
     }
 
     pub fn compact_ranges(&self) -> Result<(), Error> {
-        let iter = self.db.iterator(IteratorMode::Start);
+        let mut iter = self.db.iterator(IteratorMode::Start);
 
-        for (key, value) in iter {
+        for (key, value) in iter.by_ref() {
             let mut dates = value_to_dates(&value)?;
             // If we don't have more than a range we don't need to compact
             if dates.len() > 2 {
@@ -203,6 +211,8 @@ impl AccountTable<Writeable> {
                 self.db.put(key, new_value)?;
             }
         }
+
+        iter.status()?;
 
         Ok(())
     }
@@ -262,27 +272,29 @@ fn merge_for_pair(a: &mut Vec<u8>, b: &[u8]) {
     }
 }
 
-pub struct PairIterator<I> {
-    underlying: I,
+pub struct PairIterator<'a> {
+    underlying: DBIterator<'a>,
 }
 
-impl<I: Iterator<Item = (Box<[u8]>, Box<[u8]>)>> Iterator for PairIterator<I> {
+impl Iterator for PairIterator<'_> {
     type Item = Result<(u64, String, Vec<NaiveDate>), Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let (key, value) = self.underlying.next()?;
-
-        Some(Self::to_item(&key, &value))
+        match self.underlying.next() {
+            Some((key, value)) => Some(kv_to_item(&key, &value)),
+            None => match self.underlying.status() {
+                Ok(()) => None,
+                Err(error) => Some(Err(Error::from(error))),
+            },
+        }
     }
 }
 
-impl<I: Iterator<Item = (Box<[u8]>, Box<[u8]>)>> PairIterator<I> {
-    fn to_item(key: &[u8], value: &[u8]) -> <Self as Iterator>::Item {
-        let (id, screen_name) = key_to_pair(key)?;
-        let dates = value_to_dates(value)?;
+fn kv_to_item(key: &[u8], value: &[u8]) -> Result<(u64, String, Vec<NaiveDate>), Error> {
+    let (id, screen_name) = key_to_pair(key)?;
+    let dates = value_to_dates(value)?;
 
-        Ok((id, screen_name.to_string(), dates))
-    }
+    Ok((id, screen_name.to_string(), dates))
 }
 
 fn id_to_key_prefix(id: u64) -> [u8; 8] {
