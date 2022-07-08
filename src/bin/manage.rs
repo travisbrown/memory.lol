@@ -1,7 +1,7 @@
 use chrono::{TimeZone, Utc};
 use clap::Parser;
 use memory_lol::{
-    db::Database,
+    db::{Database, Table},
     import::{Session, UpdateMode},
 };
 use simplelog::LevelFilter;
@@ -49,6 +49,13 @@ fn main() -> Result<(), Error> {
             }
         }
         Command::Stats => {
+            if let Some(count) = db.accounts.get_estimated_key_count()? {
+                println!("Estimated account keys: {}", count);
+            }
+            if let Some(count) = db.screen_names.get_estimated_key_count()? {
+                println!("Estimated screen name keys: {}", count);
+            }
+
             let (account_counts, screen_name_counts) = db.get_counts()?;
             println!("Accounts: {}", account_counts.id_count);
             println!("Pairs: {}", account_counts.pair_count);
