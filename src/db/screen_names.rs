@@ -23,7 +23,7 @@ impl<M> Table for ScreenNameTable<M> {
     type Counts = ScreenNameTableCounts;
 
     fn underlying(&self) -> &DB {
-        &self.db.as_ref().unwrap()
+        self.db.as_ref().unwrap()
     }
 
     fn get_counts(&self) -> Result<Self::Counts, Error> {

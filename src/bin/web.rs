@@ -102,7 +102,7 @@ fn by_screen_name(
         }
 
         Ok(Json(serde_json::to_value(map)?))
-    } else if screen_name.ends_with("*") {
+    } else if screen_name.ends_with('*') {
         let mut map = Map::new();
         let results = state.lookup_by_screen_name_prefix(
             &screen_name[0..screen_name.len() - 1],
