@@ -8,6 +8,7 @@ use chrono::NaiveDate;
 use screen_names::ScreenNameTable;
 use std::collections::HashMap;
 use std::path::Path;
+use std::sync::Arc;
 pub use table::{Mode, ReadOnly, Table, Writeable};
 
 #[derive(thiserror::Error, Debug)]
@@ -24,14 +25,18 @@ pub enum Error {
     InvalidDay(i64),
     #[error("Invalid Twitter screen name")]
     InvalidScreenName(String),
+    #[error("Channel send error")]
+    ChannelSend,
+    #[error("Channel receive error")]
+    ChannelRecv(#[from] std::sync::mpsc::RecvError),
 }
 
 pub struct Database<M> {
-    pub accounts: AccountTable<M>,
+    pub accounts: Arc<AccountTable<M>>,
     pub screen_names: ScreenNameTable<M>,
 }
 
-impl<M> Database<M> {
+impl<M: Sync + Send + 'static> Database<M> {
     pub fn get_counts(
         &self,
     ) -> Result<
@@ -41,8 +46,16 @@ impl<M> Database<M> {
         ),
         Error,
     > {
-        let account_counts = self.accounts.get_counts()?;
+        let (tx, rx) = std::sync::mpsc::channel();
+        let accounts = self.accounts.clone();
+
+        std::thread::spawn(move || {
+            tx.send(accounts.get_counts())
+                .map_err(|_| Error::ChannelSend)
+        });
+
         let screen_name_counts = self.screen_names.get_counts()?;
+        let account_counts = rx.recv()??;
 
         Ok((account_counts, screen_name_counts))
     }
@@ -81,7 +94,7 @@ impl<M: Mode> Database<M> {
         screen_names_path: P,
     ) -> Result<Self, Error> {
         Ok(Self {
-            accounts: AccountTable::open(accounts_path)?,
+            accounts: Arc::new(AccountTable::open(accounts_path)?),
             screen_names: ScreenNameTable::open(screen_names_path)?,
         })
     }
