@@ -2,7 +2,9 @@
 name = "memory-lol-client"
 version = "0.1.0"
 authors = ["Travis Brown <travisrobertbrown@gmail.com>"]
+homepage = "https://github.com/travisbrown/memory-lol"
 repository = "https://github.com/travisbrown/memory-lol"
+description = "Client library for accessing the memory.lol web service"
 keywords = ["twitter", "wayback"]
 license-file = "../LICENSE"
 readme = "../README.md"
