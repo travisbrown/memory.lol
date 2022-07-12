@@ -1,5 +1,5 @@
 use super::Observation;
-use memory_lol::model::ScreenNameResult;
+use memory_lol::model::{Account, ScreenNameResult};
 use reqwest::Url;
 use std::collections::HashMap;
 
@@ -28,6 +28,13 @@ impl Client {
         Self { base: base.clone() }
     }
 
+    pub async fn lookup_tw_user_id(&self, user_id: u64) -> Result<Vec<Observation>, Error> {
+        let url = self.base.join(&format!("tw/id/{}", user_id))?;
+        let account = reqwest::get(url).await?.json::<Account>().await?;
+
+        Ok(Observation::from_account(&account))
+    }
+
     pub async fn lookup_tw_screen_name(
         &self,
         screen_name: &str,
@@ -35,32 +42,11 @@ impl Client {
         let url = self.base.join(&format!("tw/{}", screen_name))?;
         let accounts = reqwest::get(url).await?.json::<ScreenNameResult>().await?;
 
-        accounts
+        Ok(accounts
             .accounts
             .into_iter()
-            .map(|account| {
-                Ok((
-                    account.id,
-                    account
-                        .screen_names
-                        .into_iter()
-                        .map(|(screen_name, dates)| {
-                            let range = if let Some(dates) = dates {
-                                if dates.is_empty() {
-                                    None
-                                } else {
-                                    Some((dates[0], dates[dates.len() - 1]))
-                                }
-                            } else {
-                                None
-                            };
-
-                            Observation { screen_name, range }
-                        })
-                        .collect(),
-                ))
-            })
-            .collect()
+            .map(|account| (account.id, Observation::from_account(&account)))
+            .collect())
     }
 }
 
@@ -75,9 +61,24 @@ mod tests {
     use super::super::Observation;
     use super::*;
     use chrono::NaiveDate;
+    use serial_test::serial;
+    use tokio::time::Duration;
 
     #[tokio::test]
+    #[serial]
+    async fn lookup_tw_user_id() {
+        let client = Client::default();
+
+        let result = client.lookup_tw_user_id(1015295486612291585).await.unwrap();
+
+        assert_eq!(result.len(), 19);
+    }
+
+    #[tokio::test]
+    #[serial]
     async fn lookup_tw_screen_name() {
+        tokio::time::sleep(Duration::from_millis(500)).await;
+
         let client = Client::default();
 
         let result = client.lookup_tw_screen_name("WLMact").await.unwrap();
