@@ -4,8 +4,8 @@ version = "0.1.0"
 authors = ["Travis Brown <travisrobertbrown@gmail.com>"]
 repository = "https://github.com/travisbrown/memory-lol"
 keywords = ["twitter", "wayback"]
-license-file = "../../LICENSE"
-readme = "../../README.md"
+license-file = "../LICENSE"
+readme = "../README.md"
 edition = "2021"
 
 [dependencies]
