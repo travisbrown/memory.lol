@@ -6,7 +6,7 @@ repository = "https://github.com/travisbrown/memory-lol"
 keywords = ["twitter", "wayback"]
 license-file = "LICENSE"
 readme = "README.md"
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 clap = { version = "3", features = ["derive"] }

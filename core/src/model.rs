@@ -1,6 +1,6 @@
 use chrono::NaiveDate;
 use indexmap::IndexMap;
-use serde::{Deserialize, Serialize};
+use serde_derive::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
