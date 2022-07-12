@@ -98,7 +98,7 @@ fn by_screen_name(
 struct SnowflakeInfo {
     #[serde(rename = "epoch-second")]
     epoch_second: i64,
-    #[serde(rename = "ufc-rfc2822")]
+    #[serde(rename = "utc-rfc2822")]
     utc_rfc2822: String,
 }
 
