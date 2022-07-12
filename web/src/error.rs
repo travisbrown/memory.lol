@@ -11,7 +11,7 @@ pub enum Error {
     #[error("JSON error")]
     Json(#[from] serde_json::Error),
     #[error("Database error")]
-    Db(#[from] super::db::Error),
+    Db(#[from] memory_lol::db::Error),
 }
 
 impl<'r, 'o: 'r> Responder<'r, 'o> for Error {
