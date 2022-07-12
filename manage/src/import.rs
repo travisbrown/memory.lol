@@ -1,5 +1,5 @@
-use crate::db::{table::Writeable, Database};
 use chrono::{DateTime, NaiveDate, TimeZone, Utc};
+use memory_lol::db::{table::Writeable, Database};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::io::{BufRead, Read};
@@ -17,7 +17,7 @@ pub enum Error {
     #[error("JSON encoding error")]
     InvalidJson(serde_json::Value),
     #[error("Database error")]
-    Db(#[from] crate::db::Error),
+    Db(#[from] memory_lol::db::Error),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -130,7 +130,7 @@ impl Session {
         dates: Vec<NaiveDate>,
     ) -> Result<(), Error> {
         match db.insert(id, screen_name, dates) {
-            Err(crate::db::Error::InvalidScreenName(screen_name)) => {
+            Err(memory_lol::db::Error::InvalidScreenName(screen_name)) => {
                 log::warn!("Invalid screen name: {}", screen_name);
                 Ok(())
             }

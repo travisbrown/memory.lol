@@ -1,16 +1,14 @@
 #[macro_use]
 extern crate rocket;
 
-use chrono::NaiveDate;
-use indexmap::IndexMap;
-use memory_lol::{
-    db::{table::ReadOnly, Database},
-    error::Error,
-};
+use crate::error::Error;
+use memory_lol::db::{table::ReadOnly, Database};
+use memory_lol::model::{Account, ScreenNameResult};
 use rocket::{fairing::AdHoc, serde::json::Json, State};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_json::{Map, Value};
-use std::collections::HashMap;
+
+mod error;
 
 const LOOKUP_BY_PREFIX_LIMIT: usize = 100;
 
@@ -19,55 +17,11 @@ struct AppConfig {
     db: String,
 }
 
-#[derive(Serialize, Deserialize)]
-struct ScreenNameResult {
-    accounts: Vec<Account>,
-}
-
-#[derive(Serialize, Deserialize)]
-struct Account {
-    id: u64,
-    #[serde(rename = "screen-names")]
-    screen_names: IndexMap<String, Option<Vec<NaiveDate>>>,
-}
-
-fn format_screen_names(
-    result: HashMap<String, Vec<NaiveDate>>,
-) -> IndexMap<String, Option<Vec<NaiveDate>>> {
-    let mut sorted = result
-        .into_iter()
-        .map(|(screen_name, mut dates)| {
-            dates.sort();
-
-            let value = match dates.len() {
-                0 => None,
-                1 => Some(vec![dates[0]]),
-                n => Some(vec![dates[0], dates[n - 1]]),
-            };
-
-            (screen_name, value)
-        })
-        .collect::<IndexMap<_, _>>();
-
-    sorted.sort_by(|screen_name_a, dates_a, screen_name_b, dates_b| {
-        dates_a
-            .as_ref()
-            .and_then(|dates| dates.get(0))
-            .cmp(&dates_b.as_ref().and_then(|dates| dates.get(0)))
-            .then_with(|| screen_name_a.cmp(screen_name_b))
-    });
-
-    sorted
-}
-
 #[get("/tw/id/<user_id>")]
 fn by_user_id(user_id: u64, state: &State<Database<ReadOnly>>) -> Result<Json<Account>, Error> {
     let result = state.lookup_by_user_id(user_id)?;
 
-    Ok(Json(Account {
-        id: user_id,
-        screen_names: format_screen_names(result),
-    }))
+    Ok(Json(Account::from_raw_result(user_id, result)))
 }
 
 #[get("/tw/<screen_name>")]
@@ -87,10 +41,7 @@ fn by_screen_name(
                     .map(|user_id| {
                         let result = state.lookup_by_user_id(*user_id)?;
 
-                        Ok(Account {
-                            id: *user_id,
-                            screen_names: format_screen_names(result),
-                        })
+                        Ok(Account::from_raw_result(*user_id, result))
                     })
                     .collect::<Result<Vec<_>, Error>>()?;
 
@@ -115,10 +66,7 @@ fn by_screen_name(
                 .map(|user_id| {
                     let result = state.lookup_by_user_id(*user_id)?;
 
-                    Ok(Account {
-                        id: *user_id,
-                        screen_names: format_screen_names(result),
-                    })
+                    Ok(Account::from_raw_result(*user_id, result))
                 })
                 .collect::<Result<Vec<_>, Error>>()?;
 
@@ -136,10 +84,8 @@ fn by_screen_name(
             .iter()
             .map(|user_id| {
                 let result = state.lookup_by_user_id(*user_id)?;
-                Ok(Account {
-                    id: *user_id,
-                    screen_names: format_screen_names(result),
-                })
+
+                Ok(Account::from_raw_result(*user_id, result))
             })
             .collect::<Result<Vec<_>, Error>>()?;
 

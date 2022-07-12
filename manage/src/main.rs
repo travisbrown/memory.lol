@@ -1,13 +1,13 @@
+use crate::import::{Session, UpdateMode};
 use chrono::{TimeZone, Utc};
 use clap::Parser;
-use memory_lol::{
-    db::{Database, ReadOnly, Table, Writeable},
-    import::{Session, UpdateMode},
-};
+use memory_lol::db::{Database, ReadOnly, Table, Writeable};
 use simplelog::LevelFilter;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Read};
 use zstd::stream::read::Decoder;
+
+mod import;
 
 fn main() -> Result<(), Error> {
     let opts: Opts = Opts::parse();
@@ -250,12 +250,10 @@ fn main() -> Result<(), Error> {
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-    #[error("Application error")]
-    App(#[from] memory_lol::error::Error),
     #[error("Application database error")]
     AppDb(#[from] memory_lol::db::Error),
     #[error("Import error")]
-    Import(#[from] memory_lol::import::Error),
+    Import(#[from] crate::import::Error),
     #[error("I/O error")]
     Io(#[from] std::io::Error),
     #[error("JSON error")]
