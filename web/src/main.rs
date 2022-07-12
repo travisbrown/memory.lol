@@ -5,10 +5,11 @@ use crate::error::Error;
 use memory_lol::db::{table::ReadOnly, Database};
 use memory_lol::model::{Account, ScreenNameResult};
 use rocket::{fairing::AdHoc, serde::json::Json, State};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
 mod error;
+mod util;
 
 const LOOKUP_BY_PREFIX_LIMIT: usize = 100;
 
@@ -93,6 +94,25 @@ fn by_screen_name(
     }
 }
 
+#[derive(Serialize)]
+struct SnowflakeInfo {
+    #[serde(rename = "epoch-second")]
+    epoch_second: i64,
+    #[serde(rename = "ufc-rfc2822")]
+    utc_rfc2822: String,
+}
+
+#[get("/tw/util/snowflake/<id>")]
+fn snowflake_info(id: i64) -> Result<Json<Value>, Error> {
+    let timestamp =
+        crate::util::snowflake_to_date_time(id).ok_or_else(|| Error::InvalidSnowflake(id))?;
+
+    Ok(Json(serde_json::to_value(SnowflakeInfo {
+        epoch_second: timestamp.timestamp(),
+        utc_rfc2822: timestamp.to_rfc2822(),
+    })?))
+}
+
 #[launch]
 fn rocket() -> _ {
     rocket::build()
@@ -106,5 +126,5 @@ fn rocket() -> _ {
                 None => Err(rocket),
             }
         }))
-        .mount("/", routes![by_user_id, by_screen_name])
+        .mount("/", routes![by_user_id, by_screen_name, snowflake_info])
 }

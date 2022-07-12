@@ -12,10 +12,15 @@ pub enum Error {
     Json(#[from] serde_json::Error),
     #[error("Database error")]
     Db(#[from] memory_lol::db::Error),
+    #[error("Invalid Snowflake ID")]
+    InvalidSnowflake(i64),
 }
 
 impl<'r, 'o: 'r> Responder<'r, 'o> for Error {
     fn respond_to(self, req: &'r Request<'_>) -> Result<'o> {
-        Status::InternalServerError.respond_to(req)
+        match self {
+            Error::InvalidSnowflake(_) => Status::NotFound.respond_to(req),
+            _ => Status::InternalServerError.respond_to(req),
+        }
     }
 }
