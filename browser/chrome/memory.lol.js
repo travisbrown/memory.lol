@@ -37,26 +37,43 @@ const observe = () => {
 						if (filtered.length > 0) {
 							const userName = document.querySelector("div[data-testid='UserName']");
 							const userDescription = document.querySelector("div[data-testid='UserDescription']");
+							const userJoinDate = document.querySelector("span[data-testid='UserJoinDate']");
+							const UserProfileHeader_Items = document.querySelector("div[data-testid='UserProfileHeader_Items']");
 							const userUrl = document.querySelector("a[data-testid='UserUrl']");
 
-							if (userName && userDescription && userUrl) {
+							if (userName) {
 								let div = document.createElement("div");
 								div.setAttribute("id", "memory-lol");
-								div.setAttribute("class", `${userDescription.getAttribute("class")} memory-lol`);
+								if (userDescription) {
+									div.setAttribute("class", `${userDescription.getAttribute("class")} memory-lol`);
+								} else {
+									div.setAttribute("class", `${userJoinDate.getAttribute("class")} memory-lol`);
+								}
 
 								let span = document.createElement("span");
-								span.setAttribute("class", userDescription.firstElementChild.getAttribute("class"));
+								if (userDescription) {
+									span.setAttribute("class", userDescription.firstElementChild.getAttribute("class"));
+								} else {
+									span.setAttribute("class", `${userJoinDate.children[1].getAttribute("class")} ${UserProfileHeader_Items.getAttribute("class")}`);
+								}
 								span.innerHTML = "Previously: ";
 								div.appendChild(span);
 
 								for (var i = 0; i < filtered.length; i += 1) {
 									let pair = filtered[i];
 									let link = document.createElement("a");
-									link.setAttribute("class", userUrl.getAttribute("class"));
+									if (userUrl) {
+										link.setAttribute("class", userUrl.getAttribute("class"));
+									} else if (userDescription) {
+										link.setAttribute("class", userDescription.getAttribute("class"));
+									} else {
+										span.setAttribute("class", `${userJoinDate.children[1].getAttribute("class")} ${UserProfileHeader_Items.getAttribute("class")}`);
+									}
+
 									link.setAttribute("href", `http://web.archive.org/web/*/https://twitter.com/${pair[0]}/status/*`);
 									link.innerHTML = `@${pair[0]}`;
 
-									if (pair[1]) {
+									if (pair[1] !== null) {
 										if (pair[1].length == 1) {
 											link.setAttribute("title", pair[1][0]);
 										} else if (pair[1].length == 2) {
@@ -68,13 +85,18 @@ const observe = () => {
 
 									if (i < filtered.length - 1) {
 										let span = document.createElement("span");
-										span.setAttribute("class", userDescription.firstElementChild.getAttribute("class"));
+										if (userDescription) {
+											span.setAttribute("class", userDescription.firstElementChild.getAttribute("class"));
+										} else {
+											span.setAttribute("class", `${userJoinDate.children[1].getAttribute("class")} ${UserProfileHeader_Items.getAttribute("class")}`);
+										}
 										span.innerHTML = " | ";
 										div.appendChild(span);
 									}
 								}
 
 								userName.parentNode.insertBefore(div, userName.nextSibling);
+
 							}
 						}
 					});
