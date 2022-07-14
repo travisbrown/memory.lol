@@ -78,7 +78,7 @@ mod tests {
     #[serial]
     #[cfg(not(tarpaulin))]
     async fn lookup_tw_screen_name() {
-        tokio::time::sleep(Duration::from_millis(500)).await;
+        tokio::time::sleep(Duration::from_millis(2000)).await;
 
         let client = Client::default();
 
