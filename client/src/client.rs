@@ -76,6 +76,7 @@ mod tests {
 
     #[tokio::test]
     #[serial]
+    #[cfg(not(tarpaulin))]
     async fn lookup_tw_screen_name() {
         tokio::time::sleep(Duration::from_millis(500)).await;
 
