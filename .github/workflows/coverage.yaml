@@ -22,7 +22,7 @@ jobs:
         uses: actions-rs/tarpaulin@v0.1
         with:
           version: '0.20.1'
-          args: '--avoid-cfg-tarpaulin -- --test-threads 1'
+          args: '-- --test-threads 1'
 
       - name: Upload to codecov.io
         uses: codecov/codecov-action@v1.1.0
