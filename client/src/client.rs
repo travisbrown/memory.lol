@@ -65,6 +65,7 @@ mod tests {
     use tokio::time::Duration;
 
     #[tokio::test]
+    #[ignore]
     #[serial]
     async fn lookup_tw_user_id() {
         let client = Client::default();
@@ -75,6 +76,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore]
     #[serial]
     #[cfg(not(tarpaulin))]
     async fn lookup_tw_screen_name() {
