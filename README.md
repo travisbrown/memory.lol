@@ -17,6 +17,15 @@ Please note that this software is **not** "open source",
 but the source is available for use and modification by individuals, non-profit organizations, and worker-owned businesses
 (see the [license section](#license) below for details).
 
+## Safety
+
+All information provided by this service has been gathered from public archives, and in most cases it can easily be found through other means
+(such as a Twitter search for replies to an account).
+The goal of the service is to make it easier for researchers or journalists to identify directions for further investigation,
+and more generally to indicate to users that an account may be operating a scam, spreading disinformation, etc.
+If you have concerns about safety or privacy, you can contact me (via [Twitter DM](https://twitter.com/travisbrown) or [email](mailto:travisrobertbrown@protonmail.com))
+and your request will be handled privately.
+
 ## Use cases
 
 Accounts that engage in hate speech, scams, harassment, etc. on social media platforms
