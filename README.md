@@ -26,6 +26,24 @@ and more generally to indicate to users that an account may be operating a scam,
 If you have concerns about safety or privacy, you can contact me (via [Twitter DM](https://twitter.com/travisbrown) or [email](mailto:travisrobertbrown@protonmail.com))
 and your request will be handled privately.
 
+### Update on access (15 July 2022)
+
+Public access to the tool is currently limited to screen names that have been observed in the last week (this will probably be increased to two or three months at some point).
+
+The full twelve years and half a billion screen names (minus requested exclusions) are available to a trusted group of researchers, journalists, and activists.
+The service currently only supports authenticating via a GitHub account, but it does not require access to the account (it can only read public data). It's likely
+that it will also support signing in via Google and Twitter in the future.
+
+To log in visit [`https://memory.lol/login/github`](https://memory.lol/login/github),
+which will take you to a GitHub "Authorize memory.lol" page that will ask you to authorize "Limited access to your public data".
+Click "Authorize" and you'll be taken to a status URL that will show your current access level (which will be empty unless your account has been specifically approved for access).
+From there the full index will be available (if your account has been approved).
+
+It's possible to use the service from the command-line via GitHub's [device flow][github-device-flow], but this currently isn't very convenient.
+I'll be providing a client that makes command-line use a little easier.
+
+If you're interested in non-date-restricted access, please contact me.
+
 ## Use cases
 
 Accounts that engage in hate speech, scams, harassment, etc. on social media platforms
@@ -143,6 +161,7 @@ This software is published under the [Anti-Capitalist Software License][acsl] (v
 [acsl]: https://anticapitalist.software/
 [archive-today]: https://archive.today/
 [cancel-culture]: https://github.com/travisbrown/cancel-culture
+[github-device-flow]: https://docs.github.com/en/developers/apps/building-oauth-apps/authorizing-oauth-apps#device-flow
 [gojq]: https://github.com/itchyny/gojq
 [internet-archive]: https://archive.org/
 [ndjson]: http://ndjson.org/
