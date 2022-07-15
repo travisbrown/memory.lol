@@ -4,7 +4,8 @@ chrome.runtime.onMessage.addListener(
       'https://memory.lol/tw/id/' + request.id,
       {
         method: 'get',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
+        credentials: "same-origin"
       }
     )
       .then(response => response.json())
