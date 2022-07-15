@@ -14,6 +14,10 @@ pub enum Error {
     Db(#[from] memory_lol::db::Error),
     #[error("Invalid Snowflake ID")]
     InvalidSnowflake(i64),
+    #[error("OAuth 2.0 error")]
+    Oauth2(#[from] rocket_oauth2::Error),
+    #[error("Authorization error")]
+    Authz(#[from] crate::authz::Error),
 }
 
 impl<'r, 'o: 'r> Responder<'r, 'o> for Error {

@@ -80,6 +80,32 @@ impl<M> AccountTable<M> {
         Ok(result)
     }
 
+    pub fn limited_lookup(
+        &self,
+        id: u64,
+        earliest: NaiveDate,
+    ) -> Result<HashMap<String, Vec<NaiveDate>>, Error> {
+        let prefix = id_to_key_prefix(id);
+        let mut iter = self.db.prefix_iterator(prefix);
+        let mut result = HashMap::new();
+
+        for (key, value) in iter.by_ref() {
+            let (next_id, next_screen_name) = key_to_pair(&key)?;
+            if next_id == id {
+                let dates = value_to_dates(&value)?;
+                if dates.iter().any(|date| date >= &earliest) {
+                    result.insert(next_screen_name.to_string(), dates);
+                }
+            } else {
+                break;
+            }
+        }
+
+        iter.status()?;
+
+        Ok(result)
+    }
+
     pub fn get_date_counts(&self) -> Result<Vec<(NaiveDate, u64)>, Error> {
         let mut map = HashMap::new();
         let mut iter = self.db.iterator(IteratorMode::Start);

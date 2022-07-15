@@ -79,6 +79,17 @@ impl<M: Sync + Send + 'static> Database<M> {
         self.screen_names
             .lookup_by_prefix(screen_name_prefix, limit)
     }
+
+    pub fn limited_lookup_by_user_id(
+        &self,
+        user_id: u64,
+        earliest: Option<NaiveDate>,
+    ) -> Result<HashMap<String, Vec<NaiveDate>>, Error> {
+        match earliest {
+            Some(earliest) => self.accounts.limited_lookup(user_id, earliest),
+            None => self.accounts.lookup(user_id),
+        }
+    }
 }
 
 impl<M: Mode> Database<M> {
