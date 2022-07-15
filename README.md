@@ -36,13 +36,16 @@ that it will also support signing in via Google and Twitter in the future.
 
 To log in visit [`https://memory.lol/login/github`](https://memory.lol/login/github),
 which will take you to a GitHub "Authorize memory.lol" page that will ask you to authorize "Limited access to your public data".
-Click "Authorize" and you'll be taken to a status URL that will show your current access level (which will be empty unless your account has been specifically approved for access).
+Click "Authorize" and you'll be taken to a [status URL](https://memory.lol/login/status) that will show your current access level (which will be empty unless your account has been specifically approved for access).
 From there the full index will be available (if your account has been approved).
 
-It's possible to use the service from the command-line via GitHub's [device flow][github-device-flow], but this currently isn't very convenient.
+To log out go to [`https://memory.lol/logout`](https://memory.lol/logout).
+
+It's possible to use the full version of the service from the command-line via GitHub's [device flow][github-device-flow],
+but this currently isn't very convenient.
 I'll be providing a client that makes command-line use a little easier.
 
-If you're interested in non-date-restricted access, please contact me.
+If you're interested in having your account approved for non-date-restricted access, please contact me.
 
 ## Use cases
 
