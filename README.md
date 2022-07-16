@@ -42,7 +42,7 @@ From there the full index will be available (if your account has been approved).
 To log out go to [`https://memory.lol/logout`](https://memory.lol/logout).
 
 It's possible to use the full version of the service from the command-line via GitHub's [device flow][github-device-flow],
-but this currently isn't very convenient.
+but this currently isn't very convenient (see [instructions below](#authorized-access-via-device-flow)).
 I'll be providing a client that makes command-line use a little easier.
 
 If you're interested in having your account approved for non-date-restricted access, please contact me.
@@ -134,6 +134,70 @@ Note that screen name queries are case-insensitive, but the results distinguish 
 ## Other endpoints
 
 You can also look up an account's history by account ID (e.g. [`https://memory.lol/tw/id/1326229737551912960`](https://memory.lol/tw/id/1326229737551912960) also shows the screen names for Raichik's account).
+
+## Authorized access via device flow
+
+There are currently several steps if you want to access the full index from the command line.
+By default you will receive date-restricted results:
+
+```bash
+$ curl -s https://memory.lol/tw/libsoftiktok | jq
+{
+  "accounts": [
+    {
+      "id": 1326229737551912960,
+      "screen-names": {
+        "libsoftiktok": [
+          "2021-04-27",
+          "2022-07-12"
+        ]
+      }
+    }
+  ]
+}
+```
+To access the full index (assuming you have an approved account), you'll first need to get a device code and user code, using exactly this command:
+
+```bash
+$ curl -X POST -d 'client_id=92d5cb39d01c1a016f4b' https://github.com/login/device/code
+device_code=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx&expires_in=898&interval=5&user_code=ABCD-0123&verification_uri=https%3A%2F%2Fgithub.com%2Flogin%2Fdevice
+
+```
+
+Next visit [`https://github.com/login/device`](https://github.com/login/device) in a browser and enter the user code you just received when prompted.
+
+Lastly you need to get your bearer token (replacing `device_code` below with the one you were given, but again using the `client_id` shown here):
+
+```bash
+$curl -X POST -d 'device_code=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx&client_id=92d5cb39d01c1a016f4b&grant_type=urn:ietf:params:oauth:grant-type:device_code' https://github.com/login/oauth/access_token
+access_token=gho_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX&scope=&token_type=bearer
+```
+
+You can then use this token to make authenticated queries:
+
+```bash
+$ curl -s -X POST -d 'token=gho_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX' https://memory.lol/tw/libsoftiktok | jq
+{
+  "accounts": [
+    {
+      "id": 1326229737551912960,
+      "screen-names": {
+        "shaya69830552": [
+          "2020-11-10"
+        ],
+        "shaya_ray": [
+          "2020-11-27",
+          "2021-01-26"
+        ],
+        "chayaraichik": [
+          "2021-01-31",
+          "2021-02-23"
+        ],
+  ...
+}
+```
+
+Eventually this process will be bundled up into a command-line client, but for now this approach will work with existing tools like `curl`.
 
 ## Importing data
 
