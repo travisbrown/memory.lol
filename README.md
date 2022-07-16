@@ -26,13 +26,18 @@ and more generally to indicate to users that an account may be operating a scam,
 If you have concerns about safety or privacy, you can contact me (via [Twitter DM](https://twitter.com/travisbrown) or [email](mailto:travisrobertbrown@protonmail.com))
 and your request will be handled privately.
 
-### Update on access (15 July 2022)
+### Current access restrictions
 
 Public access to the tool is currently limited to screen names that have been observed in the last week (this will probably be increased to two or three months at some point).
 
 The full twelve years and half a billion screen names (minus requested exclusions) are available to a trusted group of researchers, journalists, and activists.
-The service currently only supports authenticating via a GitHub account, but it does not require access to the account (it can only read public data). It's likely
+The service currently only supports authenticating via a GitHub account, but it's likely
 that it will also support signing in via Google and Twitter in the future.
+
+The service only uses GitHub for authentication, doesn't require any non-public or write access to the user's GitHub account, will never request any kind of password, and only the user's GitHub ID is stored on the servers.
+
+The service does not currently log requests in a way that would allow anyone with access to the server to link individual queries to specific authorized users,
+but I reserve the right to implement such logging in the future if there's any suggestion of abuse.
 
 To log in visit [`https://memory.lol/login/github`](https://memory.lol/login/github),
 which will take you to a GitHub "Authorize memory.lol" page that will ask you to authorize "Limited access to your public data".
