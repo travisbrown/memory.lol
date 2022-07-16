@@ -3,9 +3,21 @@ use indexmap::IndexMap;
 use serde_derive::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ScreenNameResult {
     pub accounts: Vec<Account>,
+}
+
+impl ScreenNameResult {
+    pub fn includes_screen_name(&self, screen_name: &str) -> bool {
+        let target_screen_name = screen_name.to_lowercase();
+        self.accounts.iter().any(|account| {
+            account
+                .screen_names
+                .keys()
+                .any(|screen_name| screen_name.to_lowercase() == target_screen_name)
+        })
+    }
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]

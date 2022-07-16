@@ -1,97 +1,100 @@
 #[macro_use]
 extern crate rocket;
 
-use crate::error::Error;
+use crate::{
+    authz::{Authorization, Authorizer},
+    error::Error,
+};
 use memory_lol::db::{table::ReadOnly, Database};
-use memory_lol::model::{Account, ScreenNameResult};
-use rocket::{fairing::AdHoc, serde::json::Json, State};
+use memory_lol::model::Account;
+use rocket::{
+    fairing::AdHoc,
+    form::Form,
+    http::{Cookie, CookieJar, SameSite},
+    response::Redirect,
+    serde::json::Json,
+    State,
+};
+use rocket_oauth2::{OAuth2, TokenResponse};
 use serde::{Deserialize, Serialize};
-use serde_json::{Map, Value};
+use serde_json::Value;
 
+mod authz;
 mod error;
+mod logic;
 mod util;
 
-const LOOKUP_BY_PREFIX_LIMIT: usize = 100;
+const TOKEN_COOKIE_NAME: &str = "token";
+
+struct GitHub;
 
 #[derive(Deserialize)]
 struct AppConfig {
     db: String,
+    authorization: String,
+}
+
+#[derive(FromForm)]
+struct WithToken<'a> {
+    token: &'a str,
 }
 
 #[get("/tw/id/<user_id>")]
-fn by_user_id(user_id: u64, state: &State<Database<ReadOnly>>) -> Result<Json<Account>, Error> {
-    let result = state.lookup_by_user_id(user_id)?;
+async fn by_user_id(
+    user_id: u64,
+    cookies: &CookieJar<'_>,
+    db: &State<Database<ReadOnly>>,
+    authorizer: &State<Authorizer>,
+) -> Result<Json<Account>, Error> {
+    let token_value = cookies
+        .get_private(TOKEN_COOKIE_NAME)
+        .map(|cookie| cookie.value().to_string());
+    let account = crate::logic::by_user_id(user_id, token_value.as_deref(), db, authorizer).await?;
 
-    Ok(Json(Account::from_raw_result(user_id, result)))
+    Ok(Json(account))
 }
 
-#[get("/tw/<screen_name>")]
-fn by_screen_name(
-    screen_name: String,
-    state: &State<Database<ReadOnly>>,
+#[post("/tw/id/<user_id>", data = "<with_token>")]
+async fn by_user_id_post(
+    user_id: u64,
+    with_token: Form<WithToken<'_>>,
+    db: &State<Database<ReadOnly>>,
+    authorizer: &State<Authorizer>,
+) -> Result<Json<Account>, Error> {
+    let account = crate::logic::by_user_id(user_id, Some(with_token.token), db, authorizer).await?;
+
+    Ok(Json(account))
+}
+
+#[get("/tw/<screen_name_query>")]
+async fn by_screen_name(
+    screen_name_query: String,
+    cookies: &CookieJar<'_>,
+    db: &State<Database<ReadOnly>>,
+    authorizer: &State<Authorizer>,
 ) -> Result<Json<Value>, Error> {
-    if screen_name.contains(',') {
-        let mut map = Map::new();
+    let token_value = cookies
+        .get_private(TOKEN_COOKIE_NAME)
+        .map(|cookie| cookie.value().to_string());
+    let result =
+        crate::logic::by_screen_name(screen_name_query, token_value.as_deref(), db, authorizer)
+            .await?;
 
-        for screen_name in screen_name.split(',') {
-            if !screen_name.is_empty() {
-                let user_ids = state.lookup_by_screen_name(screen_name)?;
+    Ok(Json(result))
+}
 
-                let accounts = user_ids
-                    .iter()
-                    .map(|user_id| {
-                        let result = state.lookup_by_user_id(*user_id)?;
+#[post("/tw/<screen_name_query>", data = "<with_token>")]
+async fn by_screen_name_post(
+    screen_name_query: String,
+    with_token: Form<WithToken<'_>>,
+    db: &State<Database<ReadOnly>>,
+    authorizer: &State<Authorizer>,
+) -> Result<Json<Value>, Error> {
+    let result =
+        crate::logic::by_screen_name(screen_name_query, Some(with_token.token), db, authorizer)
+            .await?;
 
-                        Ok(Account::from_raw_result(*user_id, result))
-                    })
-                    .collect::<Result<Vec<_>, Error>>()?;
-
-                map.insert(
-                    screen_name.to_string(),
-                    serde_json::to_value(ScreenNameResult { accounts })?,
-                );
-            }
-        }
-
-        Ok(Json(serde_json::to_value(map)?))
-    } else if screen_name.ends_with('*') {
-        let mut map = Map::new();
-        let results = state.lookup_by_screen_name_prefix(
-            &screen_name[0..screen_name.len() - 1],
-            LOOKUP_BY_PREFIX_LIMIT,
-        )?;
-
-        for (screen_name, user_ids) in results {
-            let accounts = user_ids
-                .iter()
-                .map(|user_id| {
-                    let result = state.lookup_by_user_id(*user_id)?;
-
-                    Ok(Account::from_raw_result(*user_id, result))
-                })
-                .collect::<Result<Vec<_>, Error>>()?;
-
-            map.insert(
-                screen_name.to_string(),
-                serde_json::to_value(ScreenNameResult { accounts })?,
-            );
-        }
-
-        Ok(Json(serde_json::to_value(map)?))
-    } else {
-        let user_ids = state.lookup_by_screen_name(&screen_name)?;
-
-        let accounts = user_ids
-            .iter()
-            .map(|user_id| {
-                let result = state.lookup_by_user_id(*user_id)?;
-
-                Ok(Account::from_raw_result(*user_id, result))
-            })
-            .collect::<Result<Vec<_>, Error>>()?;
-
-        Ok(Json(serde_json::to_value(ScreenNameResult { accounts })?))
-    }
+    Ok(Json(result))
 }
 
 #[derive(Serialize)]
@@ -104,8 +107,7 @@ struct SnowflakeInfo {
 
 #[get("/tw/util/snowflake/<id>")]
 fn snowflake_info(id: i64) -> Result<Json<Value>, Error> {
-    let timestamp =
-        crate::util::snowflake_to_date_time(id).ok_or_else(|| Error::InvalidSnowflake(id))?;
+    let timestamp = crate::util::snowflake_to_date_time(id).ok_or(Error::InvalidSnowflake(id))?;
 
     Ok(Json(serde_json::to_value(SnowflakeInfo {
         epoch_second: timestamp.timestamp(),
@@ -113,18 +115,85 @@ fn snowflake_info(id: i64) -> Result<Json<Value>, Error> {
     })?))
 }
 
+#[get("/auth/github")]
+fn github_callback(token: TokenResponse<GitHub>, cookies: &CookieJar<'_>) -> Redirect {
+    cookies.add_private(
+        Cookie::build(TOKEN_COOKIE_NAME, token.access_token().to_string())
+            .same_site(SameSite::Lax)
+            .finish(),
+    );
+    Redirect::to("/login/status")
+}
+
+#[derive(Serialize)]
+struct LoginStatus {
+    provider: Option<String>,
+    access: Option<String>,
+}
+
+impl LoginStatus {
+    fn new(authorization: &Authorization) -> Self {
+        Self {
+            provider: authorization.provider().map(|value| format!("{}", value)),
+            access: authorization.access().map(|value| format!("{}", value)),
+        }
+    }
+}
+
+#[get("/login/github")]
+fn login_github(oauth2: OAuth2<GitHub>, cookies: &CookieJar<'_>) -> Result<Redirect, Error> {
+    Ok(oauth2.get_redirect(cookies, &[])?)
+}
+
+#[get("/login/status")]
+async fn login_status(
+    cookies: &CookieJar<'_>,
+    authorizer: &State<Authorizer>,
+) -> Result<Json<Value>, Error> {
+    let authorization = match cookies.get_private(TOKEN_COOKIE_NAME) {
+        Some(cookie) => authorizer.authorize(cookie.value()).await?,
+        None => Authorization::default(),
+    };
+
+    Ok(Json(serde_json::json!(LoginStatus::new(&authorization))))
+}
+
+#[get("/logout")]
+fn logout(cookies: &CookieJar<'_>) -> Redirect {
+    if let Some(cookie) = cookies.get_private(TOKEN_COOKIE_NAME) {
+        cookies.remove_private(cookie);
+    }
+    Redirect::to("/login/status")
+}
+
 #[launch]
 fn rocket() -> _ {
     rocket::build()
         .attach(AdHoc::config::<AppConfig>())
         .attach(AdHoc::try_on_ignite("Open database", |rocket| async {
-            match rocket
-                .state::<AppConfig>()
-                .and_then(|config| Database::<ReadOnly>::open(&config.db).ok())
-            {
-                Some(db) => Ok(rocket.manage(db)),
+            match rocket.state::<AppConfig>().and_then(|config| {
+                let db = Database::<ReadOnly>::open(&config.db).ok()?;
+                let authorizer = Authorizer::open(&config.authorization).ok()?;
+
+                Some((db, authorizer))
+            }) {
+                Some((db, authorizer)) => Ok(rocket.manage(db).manage(authorizer)),
                 None => Err(rocket),
             }
         }))
-        .mount("/", routes![by_user_id, by_screen_name, snowflake_info])
+        .attach(OAuth2::<GitHub>::fairing("github"))
+        .mount(
+            "/",
+            routes![
+                by_user_id,
+                by_user_id_post,
+                by_screen_name,
+                by_screen_name_post,
+                snowflake_info,
+                github_callback,
+                login_github,
+                login_status,
+                logout,
+            ],
+        )
 }

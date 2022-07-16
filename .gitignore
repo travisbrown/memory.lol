@@ -1,3 +1,4 @@
 Rocket.toml
+authz.csv
 /target/
 /tmp/
