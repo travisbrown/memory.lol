@@ -4,6 +4,7 @@ name: rust-coverage
 
 jobs:
   check:
+    if: ${{ false }} # Disable for now because of compiler issue
     name: Coverage
     runs-on: ubuntu-latest
     steps:
