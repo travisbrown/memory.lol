@@ -139,7 +139,7 @@ impl<M> AccountTable<M> {
                 let min = queue.peek_min().map(|(_, count)| *count).unwrap_or(0);
                 let len = current.len();
 
-                if len >= min {
+                if len >= min || queue.len() < k {
                     queue.push((last_id, current.drain(..).collect()), len);
 
                     if queue.len() > k {
