@@ -80,6 +80,15 @@ fn main() -> Result<(), Error> {
                 println!("{},{},{}", id, screen_names.len(), screen_names.join(";"));
             }
         }
+        Command::MostReused { count } => {
+            let db = Database::<ReadOnly>::open(&opts.db)?;
+            let most_reused = db.screen_names.get_most_reused(count)?;
+
+            for (screen_name, ids) in most_reused {
+                let id_strings = ids.iter().map(|id| id.to_string()).collect::<Vec<_>>();
+                println!("{},{},{}", screen_name, ids.len(), id_strings.join(";"));
+            }
+        }
         Command::ImportMentions { input, zst } => {
             let db = Database::<Writeable>::open(&opts.db)?;
             let file = File::open(input)?;
@@ -292,6 +301,11 @@ enum Command {
     DateCounts,
     /// List the accounts with the most screen names
     MostScreenNames {
+        #[clap(long, default_value = "100")]
+        count: usize,
+    },
+    /// List the screen names used by the most accounts
+    MostReused {
         #[clap(long, default_value = "100")]
         count: usize,
     },

@@ -96,6 +96,31 @@ impl<M> ScreenNameTable<M> {
 
         Ok(result)
     }
+
+    pub fn get_most_reused(&self, k: usize) -> Result<Vec<(String, Vec<u64>)>, Error> {
+        let mut queue = priority_queue::DoublePriorityQueue::with_capacity(k);
+        let mut iter = self.db.as_ref().unwrap().iterator(IteratorMode::Start);
+
+        for (key, value) in iter.by_ref() {
+            let screen_name = key_to_screen_name(&key)?;
+            let ids = value_to_ids(&value)?;
+
+            let min = queue.peek_min().map(|(_, count)| *count).unwrap_or(0);
+            let len = ids.len();
+
+            if len >= min || queue.len() < k {
+                queue.push((screen_name.to_string(), ids), len);
+
+                if queue.len() > k {
+                    queue.pop_min();
+                }
+            }
+        }
+
+        iter.status()?;
+
+        Ok(queue.into_descending_sorted_vec())
+    }
 }
 
 impl<M: Mode> ScreenNameTable<M> {
