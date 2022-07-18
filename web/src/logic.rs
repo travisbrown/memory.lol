@@ -101,12 +101,10 @@ pub(crate) async fn by_screen_name(
 
         for (screen_name, user_ids) in results {
             let accounts = lookup_ids(db, &user_ids, earliest)?;
+            let result = ScreenNameResult { accounts };
 
-            if !accounts.is_empty() {
-                map.insert(
-                    screen_name.to_string(),
-                    serde_json::to_value(ScreenNameResult { accounts })?,
-                );
+            if result.includes_screen_name(&screen_name) {
+                map.insert(screen_name.to_string(), serde_json::to_value(result)?);
             }
         }
 
