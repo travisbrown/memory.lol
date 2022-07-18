@@ -9,7 +9,7 @@ use memory_lol::{
 };
 use serde_json::{Map, Value};
 
-const UNAUTHORIZED_DAY_LIMIT: i64 = 7;
+const UNAUTHORIZED_DAY_LIMIT: i64 = 60;
 const LOOKUP_BY_PREFIX_LIMIT: usize = 100;
 
 fn get_unauthorized_first_date(limit: i64) -> NaiveDate {
