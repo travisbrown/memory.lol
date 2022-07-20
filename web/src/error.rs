@@ -17,7 +17,11 @@ pub enum Error {
     #[error("OAuth 2.0 error")]
     Oauth2(#[from] rocket_oauth2::Error),
     #[error("Authorization error")]
-    Authz(#[from] crate::authz::Error),
+    Authorization(#[from] memory_lol_auth::Error<memory_lol_auth_sqlx::Error>),
+    #[error("Google OpenID error")]
+    GoogleOpenId(#[from] memory_lol_auth::google::Error),
+    #[error("Twitter OAuth error")]
+    TwitterOAuth(#[from] memory_lol_auth::twitter::Error),
 }
 
 impl<'r, 'o: 'r> Responder<'r, 'o> for Error {
