@@ -1,12 +1,10 @@
-use crate::{
-    authz::{Authorization, Authorizer},
-    error::Error,
-};
+use crate::error::Error;
 use chrono::{Duration, NaiveDate, Utc};
 use memory_lol::{
     db::{table::ReadOnly, Database},
     model::{Account, ScreenNameResult},
 };
+use memory_lol_auth::Access;
 use serde_json::{Map, Value};
 
 const UNAUTHORIZED_DAY_LIMIT: i64 = 60;
@@ -21,7 +19,7 @@ fn lookup_ids(
     user_ids: &[u64],
     earliest: Option<NaiveDate>,
 ) -> Result<Vec<Account>, Error> {
-    Ok(user_ids
+    user_ids
         .iter()
         .filter_map(
             |user_id| match db.limited_lookup_by_user_id(*user_id, earliest) {
@@ -35,21 +33,15 @@ fn lookup_ids(
                 Err(error) => Some(Err(Error::from(error))),
             },
         )
-        .collect::<Result<Vec<_>, Error>>()?)
+        .collect::<Result<Vec<_>, Error>>()
 }
 
-pub(crate) async fn by_user_id(
-    user_id: u64,
-    token_value: Option<&str>,
+pub(crate) fn by_user_id(
     db: &Database<ReadOnly>,
-    authorizer: &Authorizer,
+    user_id: u64,
+    access: Option<Access>,
 ) -> Result<Account, Error> {
-    let authorization = match token_value {
-        Some(token) => authorizer.authorize(token).await?,
-        None => Authorization::default(),
-    };
-
-    let result = match authorization.access() {
+    let result = match access {
         Some(_) => db.lookup_by_user_id(user_id)?,
         None => db.limited_lookup_by_user_id(
             user_id,
@@ -60,18 +52,12 @@ pub(crate) async fn by_user_id(
     Ok(Account::from_raw_result(user_id, result))
 }
 
-pub(crate) async fn by_screen_name(
-    screen_name: String,
-    token_value: Option<&str>,
+pub(crate) fn by_screen_name(
     db: &Database<ReadOnly>,
-    authorizer: &Authorizer,
+    screen_name: String,
+    access: Option<Access>,
 ) -> Result<Value, Error> {
-    let authorization = match token_value {
-        Some(token) => authorizer.authorize(token).await?,
-        None => Authorization::default(),
-    };
-
-    let earliest = match authorization.access() {
+    let earliest = match access {
         Some(_) => None,
         None => Some(get_unauthorized_first_date(UNAUTHORIZED_DAY_LIMIT)),
     };

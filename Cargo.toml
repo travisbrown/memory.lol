@@ -3,6 +3,8 @@
 members = [
     "core",
     "manage",
+    "auth",
+    "auth-sqlx",
     "web",
     "client"
 ]

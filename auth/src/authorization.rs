@@ -1,29 +1,22 @@
-use super::{Access, Error, Identity};
+use super::{Access, Identity, Provider};
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 /// An extremely simple in-memory authorization database
-pub struct AuthorizationDb {
-    path: PathBuf,
+pub struct Authorizations {
     identities: HashMap<Identity, Access>,
 }
 
-impl AuthorizationDb {
+impl Authorizations {
     pub fn lookup(&self, identity: &Identity) -> Option<Access> {
         self.identities.get(identity).copied()
     }
 
     pub fn open<P: AsRef<Path>>(path: P) -> Result<Self, Error> {
-        let path = path.as_ref().to_path_buf();
         let identities = Self::read_file(&path)?;
-        Ok(Self { path, identities })
-    }
-
-    pub fn reload<P: AsRef<Path>>(&mut self) -> Result<(), Error> {
-        self.identities = Self::read_file(&self.path)?;
-        Ok(())
+        Ok(Self { identities })
     }
 
     fn read_file<P: AsRef<Path>>(path: P) -> Result<HashMap<Identity, Access>, Error> {
@@ -35,16 +28,31 @@ impl AuthorizationDb {
             let line = line?;
             let fields = line.split(',').collect::<Vec<_>>();
 
-            if fields.len() != 3 {
-                return Err(Error::InvalidAuthorizationDb);
+            if fields.len() != 4 {
+                return Err(Error::InvalidLine(line));
             }
 
             let access = fields[0].parse::<Access>()?;
-            let identity = Identity::from_pair(fields[1], fields[2])?;
+            let provider = fields[1].parse::<Provider>()?;
+            let identity = Identity::for_provider(provider, fields[2], fields[3])?;
 
             identities.insert(identity, access);
         }
 
         Ok(identities)
     }
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum Error {
+    #[error("I/O error")]
+    Io(#[from] std::io::Error),
+    #[error("Invalid Access")]
+    InvalidAccess(String),
+    #[error("Invalid provider")]
+    InvalidProvider(String),
+    #[error("Invalid identifier")]
+    InvalidIdentifier(String),
+    #[error("Invalid line")]
+    InvalidLine(String),
 }
