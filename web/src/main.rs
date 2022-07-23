@@ -5,7 +5,7 @@ use memory_lol::db::{table::ReadOnly, Database};
 use memory_lol::model::Account;
 use memory_lol_auth::{
     model::providers::{GitHub, Google, Twitter},
-    Authorizer,
+    Authorization, Authorizer,
 };
 use memory_lol_auth_sqlx::SqlxAuthDb;
 use rocket::{
@@ -62,10 +62,23 @@ async fn by_user_id_post(
     authorizer: &State<SqliteAuthorizer>,
     mut connection: Connection<Auth>,
 ) -> Result<Json<Account>, Error> {
-    let access = authorizer
+    let authorization = authorizer
         .authorize_github(&mut connection, with_token.token)
-        .await?
-        .access();
+        .await?;
+
+    let access = match authorization {
+        Authorization::LoggedOut => {
+            authorizer
+                .save_github_token(&mut connection, with_token.token)
+                .await?;
+
+            authorizer
+                .authorize_github(&mut connection, with_token.token)
+                .await?
+                .access()
+        }
+        other => other.access(),
+    };
 
     let account = crate::logic::by_user_id(db, user_id, access)?;
 
@@ -94,10 +107,24 @@ async fn by_screen_name_post(
     authorizer: &State<SqliteAuthorizer>,
     mut connection: Connection<Auth>,
 ) -> Result<Json<Value>, Error> {
-    let access = authorizer
+    let authorization = authorizer
         .authorize_github(&mut connection, with_token.token)
-        .await?
-        .access();
+        .await?;
+
+    let access = match authorization {
+        Authorization::LoggedOut => {
+            authorizer
+                .save_github_token(&mut connection, with_token.token)
+                .await?;
+
+            authorizer
+                .authorize_github(&mut connection, with_token.token)
+                .await?
+                .access()
+        }
+        other => other.access(),
+    };
+
     let result = crate::logic::by_screen_name(db, screen_name_query, access)?;
 
     Ok(Json(result))
