@@ -4,12 +4,19 @@ extern crate rocket;
 use memory_lol::db::{table::ReadOnly, Database};
 use memory_lol::model::Account;
 use memory_lol_auth::{
-    model::providers::{GitHub, Google, Twitter},
+    model::{
+        providers::{GitHub, Google, Twitter},
+        IsProvider,
+    },
     Authorization, Authorizer,
 };
 use memory_lol_auth_sqlx::SqlxAuthDb;
 use rocket::{
-    fairing::AdHoc, form::Form, http::CookieJar, serde::json::Json, Build, Rocket, State,
+    fairing::{AdHoc, Fairing},
+    form::Form,
+    http::CookieJar,
+    serde::json::Json,
+    Build, Rocket, State,
 };
 use rocket_db_pools::{sqlx, Connection, Database as PoolDatabase};
 use rocket_oauth2::{OAuth2, OAuthConfig};
@@ -23,6 +30,10 @@ mod snowflake;
 mod util;
 
 use error::Error;
+
+fn provider_fairing<P: IsProvider>() -> impl Fairing {
+    OAuth2::<P>::fairing(P::provider().name())
+}
 
 #[derive(Deserialize)]
 struct AppConfig {
@@ -150,9 +161,9 @@ fn rocket() -> _ {
             },
         ))
         .attach(Auth::init())
-        .attach(OAuth2::<GitHub>::fairing("github"))
-        .attach(OAuth2::<Google>::fairing("google"))
-        .attach(OAuth2::<Twitter>::fairing("twitter"))
+        .attach(provider_fairing::<GitHub>())
+        .attach(provider_fairing::<Google>())
+        .attach(provider_fairing::<Twitter>())
         .mount(
             "/",
             routes![

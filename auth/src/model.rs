@@ -34,7 +34,7 @@ pub mod providers {
     }
 }
 
-pub trait IsProvider {
+pub trait IsProvider: 'static {
     type Id;
 
     fn provider() -> Provider;
