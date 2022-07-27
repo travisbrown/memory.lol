@@ -3,7 +3,7 @@ use crate::error::Error;
 use memory_lol_auth::{
     model::{
         providers::{GitHub, Google, Twitter},
-        Provider,
+        Provider, UserInfo,
     },
     Authorization,
 };
@@ -22,13 +22,31 @@ struct LoginStatus {
 
 #[derive(Serialize)]
 struct ProviderStatus {
-    access: Option<String>,
+    id: String,
+    name: String,
+    access: Vec<&'static str>,
 }
 
 impl ProviderStatus {
-    fn new(authorization: &Authorization) -> Self {
+    fn new(authorization: &Authorization, user_info: &UserInfo) -> Self {
+        let mut access = Vec::with_capacity(1);
+
+        if authorization.is_admin() {
+            access.push("admin");
+        }
+
+        if authorization.is_trusted() {
+            access.push("trusted");
+        }
+
+        if authorization.can_write_gists() {
+            access.push("gist");
+        }
+
         Self {
-            access: authorization.access().map(|value| format!("{}", value)),
+            id: user_info.id_str(),
+            name: user_info.name(),
+            access,
         }
     }
 }
@@ -41,28 +59,38 @@ pub async fn status(
 ) -> Result<Json<Value>, Error> {
     let mut status = LoginStatus::default();
     if let Some(token) = super::get_token_cookie(cookies, Provider::GitHub) {
-        let authorization = authorizer.authorize_github(&mut connection, &token).await?;
-
-        if authorization.provider().is_some() {
-            status.github = Some(ProviderStatus::new(&authorization));
+        if let Some(authorization) = authorizer.authorize_github(&mut connection, &token).await? {
+            if let Some(user_info) = authorizer
+                .get_user_info(&mut connection, &authorization.identity)
+                .await?
+            {
+                status.github = Some(ProviderStatus::new(&authorization, &user_info));
+            }
         }
     }
 
     if let Some(token) = super::get_token_cookie(cookies, Provider::Google) {
-        let authorization = authorizer.authorize_google(&mut connection, &token).await?;
-
-        if authorization.provider().is_some() {
-            status.google = Some(ProviderStatus::new(&authorization));
+        if let Some(authorization) = authorizer.authorize_google(&mut connection, &token).await? {
+            if let Some(user_info) = authorizer
+                .get_user_info(&mut connection, &authorization.identity)
+                .await?
+            {
+                status.google = Some(ProviderStatus::new(&authorization, &user_info));
+            }
         }
     }
 
     if let Some(token) = super::get_token_cookie(cookies, Provider::Twitter) {
-        let authorization = authorizer
+        if let Some(authorization) = authorizer
             .authorize_twitter(&mut connection, &token)
-            .await?;
-
-        if authorization.provider().is_some() {
-            status.twitter = Some(ProviderStatus::new(&authorization));
+            .await?
+        {
+            if let Some(user_info) = authorizer
+                .get_user_info(&mut connection, &authorization.identity)
+                .await?
+            {
+                status.twitter = Some(ProviderStatus::new(&authorization, &user_info));
+            }
         }
     }
 

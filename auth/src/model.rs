@@ -1,4 +1,5 @@
 use super::authorization::Error;
+use flagset::{flags, FlagSet};
 use std::fmt::Display;
 use std::str::FromStr;
 
@@ -48,7 +49,7 @@ pub enum Provider {
 }
 
 impl Provider {
-    pub fn prefix(&self) -> &'static str {
+    pub const fn prefix(&self) -> &'static str {
         match self {
             Self::GitHub => "gh",
             Self::Google => "gc",
@@ -56,7 +57,7 @@ impl Provider {
         }
     }
 
-    pub fn name(&self) -> &'static str {
+    pub const fn name(&self) -> &'static str {
         match self {
             Self::GitHub => "github",
             Self::Google => "google",
@@ -133,19 +134,27 @@ impl Identity {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum Access {
-    Admin,
-    Full,
+flags! {
+    pub enum Access: u8 {
+        Admin,
+        Trusted,
+        Gist,
+    }
 }
 
-impl FromStr for Access {
-    type Err = Error;
+impl Access {
+    pub const fn name(&self) -> &'static str {
+        match self {
+            Self::Admin => "admin",
+            Self::Trusted => "trusted",
+            Self::Gist => "gist",
+        }
+    }
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    pub fn from_label(s: &str) -> Result<FlagSet<Self>, Error> {
         match s {
-            "admin" => Ok(Self::Admin),
-            "full" => Ok(Self::Full),
+            "admin" => Ok(Access::Admin | Access::Trusted),
+            "trusted" => Ok(Access::Trusted.into()),
             other => Err(Error::InvalidAccess(other.to_string())),
         }
     }
@@ -153,43 +162,62 @@ impl FromStr for Access {
 
 impl Display for Access {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Admin => write!(f, "admin"),
-            Self::Full => write!(f, "full"),
+        write!(f, "{}", self.name())
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Authorization {
+    pub identity: Identity,
+    access: FlagSet<Access>,
+}
+
+impl Authorization {
+    pub fn new<I: Into<FlagSet<Access>>>(identity: Identity, access: I) -> Self {
+        Self {
+            identity,
+            access: access.into(),
         }
+    }
+
+    pub fn provider(&self) -> Provider {
+        self.identity.provider()
+    }
+
+    pub fn is_admin(&self) -> bool {
+        self.access.contains(Access::Admin)
+    }
+
+    pub fn is_trusted(&self) -> bool {
+        self.access.contains(Access::Trusted)
+    }
+
+    pub fn can_write_gists(&self) -> bool {
+        self.access.contains(Access::Gist)
     }
 }
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub enum Authorization {
-    LoggedOut,
-    LoggedIn { identity: Identity },
-    Authorized { identity: Identity, access: Access },
+pub enum UserInfo {
+    GitHub { id: u64, username: String },
+    Google { sub: String, email: String },
+    Twitter { id: u64, screen_name: String },
 }
 
-impl Authorization {
-    pub fn identity(&self) -> Option<&Identity> {
+impl UserInfo {
+    pub fn id_str(&self) -> String {
         match self {
-            Authorization::LoggedOut => None,
-            Authorization::LoggedIn { identity } => Some(identity),
-            Authorization::Authorized { identity, .. } => Some(identity),
+            Self::GitHub { id, .. } => id.to_string(),
+            Self::Google { sub, .. } => sub.clone(),
+            Self::Twitter { id, .. } => id.to_string(),
         }
     }
 
-    pub fn provider(&self) -> Option<Provider> {
-        self.identity().map(|identity| identity.provider())
-    }
-
-    pub fn access(&self) -> Option<Access> {
+    pub fn name(&self) -> String {
         match self {
-            Authorization::Authorized { access, .. } => Some(*access),
-            _ => None,
+            Self::GitHub { username, .. } => username.clone(),
+            Self::Google { email, .. } => email.clone(),
+            Self::Twitter { screen_name, .. } => screen_name.to_string(),
         }
-    }
-}
-
-impl Default for Authorization {
-    fn default() -> Self {
-        Self::LoggedOut
     }
 }

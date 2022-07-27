@@ -1,5 +1,5 @@
 use super::{error::Error, Auth, SqliteAuthorizer};
-use memory_lol_auth::{model::Provider, Access};
+use memory_lol_auth::model::Provider;
 use rocket::http::CookieJar;
 use rocket_db_pools::Connection;
 
@@ -26,39 +26,42 @@ pub fn get_token_cookie(cookies: &CookieJar<'_>, provider: Provider) -> Option<S
         .map(|cookie| cookie.value().to_string())
 }
 
-pub async fn lookup_access(
+pub async fn lookup_is_trusted(
     cookies: &CookieJar<'_>,
     authorizer: &SqliteAuthorizer,
     mut connection: Connection<Auth>,
-) -> Result<Option<Access>, Error> {
+) -> Result<bool, Error> {
     let github_token = match get_token_cookie(cookies, Provider::GitHub) {
         Some(token) => authorizer
             .authorize_github(&mut connection, &token)
             .await?
-            .access(),
-        None => None,
+            .map(|authorization| authorization.is_trusted())
+            .unwrap_or(false),
+        None => false,
     };
 
-    Ok(match github_token {
-        Some(access) => Some(access),
-        None => {
-            let google_token = match get_token_cookie(cookies, Provider::Google) {
-                Some(token) => authorizer
-                    .authorize_google(&mut connection, &token)
-                    .await?
-                    .access(),
-                None => None,
-            };
+    Ok(if github_token {
+        true
+    } else {
+        let google_token = match get_token_cookie(cookies, Provider::Google) {
+            Some(token) => authorizer
+                .authorize_google(&mut connection, &token)
+                .await?
+                .map(|authorization| authorization.is_trusted())
+                .unwrap_or(false),
+            None => false,
+        };
 
-            match google_token {
-                Some(access) => Some(access),
-                None => match get_token_cookie(cookies, Provider::Twitter) {
-                    Some(token) => authorizer
-                        .authorize_twitter(&mut connection, &token)
-                        .await?
-                        .access(),
-                    None => None,
-                },
+        if google_token {
+            true
+        } else {
+            match get_token_cookie(cookies, Provider::Twitter) {
+                Some(token) => authorizer
+                    .authorize_twitter(&mut connection, &token)
+                    .await?
+                    .map(|authorization| authorization.is_trusted())
+                    .unwrap_or(false),
+                None => false,
             }
         }
     })

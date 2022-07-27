@@ -4,7 +4,6 @@ use memory_lol::{
     db::{table::ReadOnly, Database},
     model::{Account, ScreenNameResult},
 };
-use memory_lol_auth::Access;
 use serde_json::{Map, Value};
 
 const UNAUTHORIZED_DAY_LIMIT: i64 = 60;
@@ -39,14 +38,15 @@ fn lookup_ids(
 pub(crate) fn by_user_id(
     db: &Database<ReadOnly>,
     user_id: u64,
-    access: Option<Access>,
+    is_trusted: bool,
 ) -> Result<Account, Error> {
-    let result = match access {
-        Some(_) => db.lookup_by_user_id(user_id)?,
-        None => db.limited_lookup_by_user_id(
+    let result = if is_trusted {
+        db.lookup_by_user_id(user_id)?
+    } else {
+        db.limited_lookup_by_user_id(
             user_id,
             Some(get_unauthorized_first_date(UNAUTHORIZED_DAY_LIMIT)),
-        )?,
+        )?
     };
 
     Ok(Account::from_raw_result(user_id, result))
@@ -55,11 +55,12 @@ pub(crate) fn by_user_id(
 pub(crate) fn by_screen_name(
     db: &Database<ReadOnly>,
     screen_name: String,
-    access: Option<Access>,
+    is_trusted: bool,
 ) -> Result<Value, Error> {
-    let earliest = match access {
-        Some(_) => None,
-        None => Some(get_unauthorized_first_date(UNAUTHORIZED_DAY_LIMIT)),
+    let earliest = if is_trusted {
+        None
+    } else {
+        Some(get_unauthorized_first_date(UNAUTHORIZED_DAY_LIMIT))
     };
 
     if screen_name.contains(',') {

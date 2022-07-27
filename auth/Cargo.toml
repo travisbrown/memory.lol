@@ -12,6 +12,7 @@ edition = "2021"
 async-trait = "0.1"
 chrono = { version = "0.4", features = ["serde"] }
 egg-mode = "0.16"
+flagset = "0.4"
 futures = "0.3"
 futures-locks = "0.7"
 openid = "0.10"

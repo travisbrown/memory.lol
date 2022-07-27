@@ -8,7 +8,7 @@ use memory_lol_auth::{
         providers::{GitHub, Google, Twitter},
         IsProvider,
     },
-    Authorization, Authorizer,
+    Authorizer,
 };
 use memory_lol_auth_sqlx::SqlxAuthDb;
 use rocket::{
@@ -59,8 +59,8 @@ async fn by_user_id(
     authorizer: &State<SqliteAuthorizer>,
     connection: Connection<Auth>,
 ) -> Result<Json<Account>, Error> {
-    let access = auth::lookup_access(cookies, authorizer, connection).await?;
-    let account = crate::logic::by_user_id(db, user_id, access)?;
+    let is_trusted = auth::lookup_is_trusted(cookies, authorizer, connection).await?;
+    let account = crate::logic::by_user_id(db, user_id, is_trusted)?;
 
     Ok(Json(account))
 }
@@ -78,7 +78,7 @@ async fn by_user_id_post(
         .await?;
 
     let access = match authorization {
-        Authorization::LoggedOut => {
+        None => {
             authorizer
                 .save_github_token(&mut connection, with_token.token)
                 .await?;
@@ -86,9 +86,10 @@ async fn by_user_id_post(
             authorizer
                 .authorize_github(&mut connection, with_token.token)
                 .await?
-                .access()
+                .map(|authorization| authorization.is_trusted())
+                .unwrap_or(false)
         }
-        other => other.access(),
+        Some(authorization) => authorization.is_trusted(),
     };
 
     let account = crate::logic::by_user_id(db, user_id, access)?;
@@ -104,8 +105,8 @@ async fn by_screen_name(
     authorizer: &State<SqliteAuthorizer>,
     connection: Connection<Auth>,
 ) -> Result<Json<Value>, Error> {
-    let access = auth::lookup_access(cookies, authorizer, connection).await?;
-    let result = crate::logic::by_screen_name(db, screen_name_query, access)?;
+    let is_trusted = auth::lookup_is_trusted(cookies, authorizer, connection).await?;
+    let result = crate::logic::by_screen_name(db, screen_name_query, is_trusted)?;
 
     Ok(Json(result))
 }
@@ -123,7 +124,7 @@ async fn by_screen_name_post(
         .await?;
 
     let access = match authorization {
-        Authorization::LoggedOut => {
+        None => {
             authorizer
                 .save_github_token(&mut connection, with_token.token)
                 .await?;
@@ -131,11 +132,11 @@ async fn by_screen_name_post(
             authorizer
                 .authorize_github(&mut connection, with_token.token)
                 .await?
-                .access()
+                .map(|authorization| authorization.is_trusted())
+                .unwrap_or(false)
         }
-        other => other.access(),
+        Some(authorization) => authorization.is_trusted(),
     };
-
     let result = crate::logic::by_screen_name(db, screen_name_query, access)?;
 
     Ok(Json(result))

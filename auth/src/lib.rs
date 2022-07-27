@@ -16,7 +16,7 @@ pub mod model;
 pub mod twitter;
 
 pub use db::AuthDb;
-pub use model::{Access, Authorization, Identity, Provider};
+pub use model::{Access, Authorization, Identity, Provider, UserInfo};
 
 pub struct Authorizer<A> {
     _auth_db: PhantomData<A>,
@@ -53,18 +53,21 @@ impl<A: AuthDb> Authorizer<A> {
         &self,
         connection: &mut A::Connection,
         token: &str,
-    ) -> Result<Authorization, Error<A::Error>> {
-        if let Some((id, _)) = A::lookup_github_token(connection, token)
+    ) -> Result<Option<Authorization>, Error<A::Error>> {
+        if let Some((id, gist)) = A::lookup_github_token(connection, token)
             .await
             .map_err(Error::AuthDb)?
         {
             let identity = Identity::GitHub { id };
-            Ok(match self.authorizations.lookup(&identity) {
-                Some(access) => Authorization::Authorized { identity, access },
-                None => Authorization::LoggedIn { identity },
-            })
+            let mut access = self.authorizations.lookup(&identity);
+
+            if gist {
+                access |= Access::Gist
+            }
+
+            Ok(Some(Authorization::new(identity, access)))
         } else {
-            Ok(Authorization::LoggedOut)
+            Ok(None)
         }
     }
 
@@ -72,32 +75,28 @@ impl<A: AuthDb> Authorizer<A> {
         &self,
         connection: &mut A::Connection,
         token: &str,
-    ) -> Result<Authorization, Error<A::Error>> {
+    ) -> Result<Option<Authorization>, Error<A::Error>> {
         if let Some((sub, email)) = A::lookup_google_token(connection, token)
             .await
             .map_err(Error::AuthDb)?
         {
             let sub_identity = Identity::Google { sub };
-            Ok(match self.authorizations.lookup(&sub_identity) {
-                Some(access) => Authorization::Authorized {
-                    identity: sub_identity,
-                    access,
-                },
-                None => {
-                    let email_identity = Identity::GoogleEmail { email };
-                    match self.authorizations.lookup(&email_identity) {
-                        Some(access) => Authorization::Authorized {
-                            identity: email_identity,
-                            access,
-                        },
-                        None => Authorization::LoggedIn {
-                            identity: email_identity,
-                        },
-                    }
+            let sub_access = self.authorizations.lookup(&sub_identity);
+
+            Ok(Some(if sub_access.is_empty() {
+                let email_identity = Identity::GoogleEmail { email };
+                let email_access = self.authorizations.lookup(&email_identity);
+
+                if email_access.is_empty() {
+                    Authorization::new(sub_identity, sub_access)
+                } else {
+                    Authorization::new(email_identity, email_access)
                 }
-            })
+            } else {
+                Authorization::new(sub_identity, sub_access)
+            }))
         } else {
-            Ok(Authorization::LoggedOut)
+            Ok(None)
         }
     }
 
@@ -105,18 +104,17 @@ impl<A: AuthDb> Authorizer<A> {
         &self,
         connection: &mut A::Connection,
         token: &str,
-    ) -> Result<Authorization, Error<A::Error>> {
+    ) -> Result<Option<Authorization>, Error<A::Error>> {
         if let Some(id) = A::lookup_twitter_token(connection, token)
             .await
             .map_err(Error::AuthDb)?
         {
             let identity = Identity::Twitter { id };
-            Ok(match self.authorizations.lookup(&identity) {
-                Some(access) => Authorization::Authorized { identity, access },
-                None => Authorization::LoggedIn { identity },
-            })
+            let access = self.authorizations.lookup(&identity);
+
+            Ok(Some(Authorization::new(identity, access)))
         } else {
-            Ok(Authorization::LoggedOut)
+            Ok(None)
         }
     }
 
@@ -195,6 +193,40 @@ impl<A: AuthDb> Authorizer<A> {
             }
             _ => Ok(None),
         }
+    }
+
+    pub async fn get_user_info(
+        &self,
+        connection: &mut A::Connection,
+        identity: &Identity,
+    ) -> Result<Option<UserInfo>, Error<A::Error>> {
+        Ok(match identity {
+            Identity::GitHub { id } => A::get_github_name(connection, *id)
+                .await
+                .map_err(Error::AuthDb)?
+                .map(|username| UserInfo::GitHub { id: *id, username }),
+            Identity::Google { sub } => A::get_google_email(connection, sub)
+                .await
+                .map_err(Error::AuthDb)?
+                .map(|email| UserInfo::Google {
+                    sub: sub.to_string(),
+                    email,
+                }),
+            Identity::GoogleEmail { email } => A::get_google_sub(connection, email)
+                .await
+                .map_err(Error::AuthDb)?
+                .map(|sub| UserInfo::Google {
+                    sub,
+                    email: email.to_string(),
+                }),
+            Identity::Twitter { id } => A::get_twitter_name(connection, *id)
+                .await
+                .map_err(Error::AuthDb)?
+                .map(|screen_name| UserInfo::Twitter {
+                    id: *id,
+                    screen_name,
+                }),
+        })
     }
 }
 

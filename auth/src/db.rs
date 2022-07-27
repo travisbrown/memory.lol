@@ -15,6 +15,11 @@ pub trait AuthDb {
         sub: &str,
     ) -> Result<Option<String>, Self::Error>;
 
+    async fn get_google_sub(
+        connection: &mut Self::Connection,
+        email: &str,
+    ) -> Result<Option<String>, Self::Error>;
+
     async fn get_twitter_name(
         connection: &mut Self::Connection,
         id: u64,

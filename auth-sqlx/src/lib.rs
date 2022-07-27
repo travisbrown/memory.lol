@@ -33,6 +33,17 @@ impl AuthDb for SqlxAuthDb {
         )
     }
 
+    async fn get_google_sub(
+        connection: &mut Self::Connection,
+        email: &str,
+    ) -> Result<Option<String>, Self::Error> {
+        Ok(
+            sqlx::query_scalar!("SELECT id FROM google_names WHERE value = ?", email)
+                .fetch_optional(connection)
+                .await?,
+        )
+    }
+
     async fn get_twitter_name(
         connection: &mut Self::Connection,
         id: u64,

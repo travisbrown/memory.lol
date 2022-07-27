@@ -635,6 +635,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "flagset"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cda653ca797810c02f7ca4b804b40b8b95ae046eb989d356bce17919a8c25499"
+
+[[package]]
 name = "flume"
 version = "0.10.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1251,6 +1257,7 @@ dependencies = [
  "async-trait",
  "chrono",
  "egg-mode",
+ "flagset",
  "futures",
  "futures-locks",
  "openid",
