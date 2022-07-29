@@ -20,7 +20,7 @@ use rocket::{
 };
 use rocket_db_pools::{sqlx, Connection, Database as PoolDatabase};
 use rocket_oauth2::{OAuth2, OAuthConfig};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 mod auth;
@@ -43,10 +43,45 @@ pub struct AppConfig {
     default_login_redirect_uri: rocket::http::uri::Reference<'static>,
 }
 
+#[derive(Debug, Default, Eq, PartialEq, Serialize)]
+pub struct ExtendedScreenNameResult {
+    accounts: Vec<ExtendedAccount>,
+}
+
+impl ExtendedScreenNameResult {
+    pub fn includes_screen_name(&self, screen_name: &str) -> bool {
+        let target_screen_name = screen_name.to_lowercase();
+        self.accounts.iter().any(|account| {
+            account
+                .screen_names
+                .keys()
+                .any(|screen_name| screen_name.to_lowercase() == target_screen_name)
+        })
+    }
+}
+
+#[derive(Debug, Eq, PartialEq, Serialize)]
+pub struct ExtendedAccount {
+    pub id: u64,
+    pub id_str: String,
+    pub screen_names: indexmap::IndexMap<String, Option<Vec<chrono::NaiveDate>>>,
+}
+
+impl From<Account> for ExtendedAccount {
+    fn from(account: Account) -> Self {
+        Self {
+            id: account.id,
+            id_str: account.id.to_string(),
+            screen_names: account.screen_names,
+        }
+    }
+}
+
 #[derive(FromForm)]
 struct WithToken<'a> {
     token: &'a str,
 }
+
 type SqliteAuthorizer = Authorizer<SqlxAuthDb>;
 
 #[derive(PoolDatabase)]
@@ -60,7 +95,7 @@ async fn by_user_id(
     db: &State<Database<ReadOnly>>,
     authorizer: &State<SqliteAuthorizer>,
     connection: Connection<Auth>,
-) -> Result<Json<Account>, Error> {
+) -> Result<Json<ExtendedAccount>, Error> {
     let is_trusted = auth::lookup_is_trusted(cookies, authorizer, connection).await?;
     let account = crate::logic::by_user_id(db, user_id, is_trusted)?;
 
@@ -74,7 +109,7 @@ async fn by_user_id_post(
     db: &State<Database<ReadOnly>>,
     authorizer: &State<SqliteAuthorizer>,
     mut connection: Connection<Auth>,
-) -> Result<Json<Account>, Error> {
+) -> Result<Json<ExtendedAccount>, Error> {
     let authorization = authorizer
         .authorize_github(&mut connection, with_token.token)
         .await?;
