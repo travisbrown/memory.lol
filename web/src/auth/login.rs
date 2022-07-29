@@ -1,4 +1,4 @@
-use super::super::{Auth, SqliteAuthorizer};
+use super::super::{AppConfig, Auth, SqliteAuthorizer};
 use crate::error::Error;
 use memory_lol_auth::{
     model::{
@@ -98,13 +98,14 @@ pub async fn status(
 }
 
 #[get("/logout")]
-pub fn logout(cookies: &CookieJar<'_>) -> Redirect {
+pub fn logout(cookies: &CookieJar<'_>, app_config: &State<AppConfig>) -> Redirect {
     for token_cookie_name in super::TOKEN_COOKIE_NAMES {
         if let Some(cookie) = cookies.get_private(token_cookie_name) {
             cookies.remove_private(cookie);
         }
     }
-    Redirect::to("/login/status")
+
+    Redirect::to(app_config.default_login_redirect_uri.clone())
 }
 
 #[get("/login/github?<scope>")]

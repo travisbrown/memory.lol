@@ -36,9 +36,11 @@ fn provider_fairing<P: IsProvider>() -> impl Fairing {
 }
 
 #[derive(Deserialize)]
-struct AppConfig {
+pub struct AppConfig {
     db: String,
     authorization: String,
+    domain: Option<String>,
+    default_login_redirect_uri: rocket::http::uri::Reference<'static>,
 }
 
 #[derive(FromForm)]
