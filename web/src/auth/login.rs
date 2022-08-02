@@ -100,7 +100,11 @@ pub async fn status(
 #[get("/logout")]
 pub fn logout(cookies: &CookieJar<'_>, app_config: &State<AppConfig>) -> Redirect {
     for token_cookie_name in super::TOKEN_COOKIE_NAMES {
-        if let Some(cookie) = cookies.get_private(token_cookie_name) {
+        if let Some(mut cookie) = cookies.get_private(token_cookie_name) {
+            if let Some(domain) = &app_config.domain {
+                cookie.set_domain(domain.clone());
+            }
+
             cookies.remove_private(cookie);
         }
     }
