@@ -16,6 +16,6 @@ memory-lol-auth = { path = "../auth" }
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = { version = "1.0", features = ["preserve_order"] }
-sqlx = { version = "0.5", features = ["runtime-tokio-rustls", "sqlite"] }
+sqlx = { version = "0.5", features = ["offline", "runtime-tokio-rustls", "sqlite"] }
 thiserror = "1.0"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }

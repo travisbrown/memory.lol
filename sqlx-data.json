@@ -1,0 +1,237 @@
+{
+  "db": "SQLite",
+  "016ad74479699e3412d0350cf94fc6cf71704188a10bf847615a3193e9b47273": {
+    "describe": {
+      "columns": [
+        {
+          "name": "sub",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "email",
+          "ordinal": 1,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT google_tokens.id AS sub, google_names.value AS email\n                FROM google_tokens\n                JOIN google_names ON google_names.id = google_tokens.id\n                WHERE google_tokens.value = ?"
+  },
+  "02c05ecaba73e760cc133d3bf571929d3ac00910fe068fd4795822932e660fb4": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        },
+        {
+          "name": "gist",
+          "ordinal": 1,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT id, gist FROM github_tokens WHERE value = ?"
+  },
+  "0a5afb74809b050389ac28bf76fadcc0cea4588c973620ec790ac3d050e5c09e": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT id FROM google_names WHERE value = ?"
+  },
+  "0bcc7cfbda71cc199a7f1a24b1c3e34bbdb095d012f303d54f38a1558deea46a": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT id FROM twitter_tokens WHERE value = ?"
+  },
+  "12336191bfdc1a0d9f636aeb76539e8762d508504d6b1d1fb4e73861dc277328": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 2
+      }
+    },
+    "query": "INSERT INTO google_tokens (value, id) VALUES (?, ?)"
+  },
+  "2c8baaa2de4e15e26422023d0e4ec0ee689093a9ea0a6c7c5e1287a70091b20a": {
+    "describe": {
+      "columns": [
+        {
+          "name": "value",
+          "ordinal": 0,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT value FROM twitter_names WHERE id = ?"
+  },
+  "3a6aef628d7a5a08485a1c65ba7bb1886174773aa71b52969c9a519a8002e5e7": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 2
+      }
+    },
+    "query": "REPLACE INTO twitter_names (id, value) VALUES (?, ?)"
+  },
+  "4eb1dbd2417dc36d5558a3133ba039472a23a2c34f6a8b55a8945ffd2c6c6a6a": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 5
+      }
+    },
+    "query": "INSERT INTO twitter_tokens (value, id, consumer_secret, access_key, access_secret)\n                VALUES (?, ?, ?, ?, ?)"
+  },
+  "5f5eb6ab5ca6674621019f1a4a827c8be2ecf61b26db51c7d66519a25934ba60": {
+    "describe": {
+      "columns": [
+        {
+          "name": "value",
+          "ordinal": 0,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT value FROM google_names WHERE id = ?"
+  },
+  "7811a41808d78ffbfea86c050c4441564e15e9fd834978759051bbcb180fabe2": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 2
+      }
+    },
+    "query": "REPLACE INTO google_names (id, value) VALUES (?, ?)"
+  },
+  "9750d45809ed33e61653410e8dee2e75b684f98b077471661891e50e495fdd89": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 2
+      }
+    },
+    "query": "REPLACE INTO github_names (id, value) VALUES (?, ?)"
+  },
+  "a58ed5600d19d83705cf7089fb0ffd9185d2fa49efcaabfda385f7c03dc941e5": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        },
+        {
+          "name": "consumer_secret",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "access_key",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "access_secret",
+          "ordinal": 3,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT id, consumer_secret, access_key, access_secret\n                    FROM twitter_tokens\n                    WHERE value = ?"
+  },
+  "a5f235a69bab2e4b327c5801e1b3bdfdbc754d209d644255c87ea8cc9e913847": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 3
+      }
+    },
+    "query": "INSERT INTO github_tokens (value, id, gist) VALUES (?, ?, ?)"
+  },
+  "bf6ff5b9cadd503be88ecc3dd002739d7f87e8177e2ecebf401ea920a8f758ce": {
+    "describe": {
+      "columns": [
+        {
+          "name": "value",
+          "ordinal": 0,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT value FROM github_names WHERE id = ?"
+  }
+}
