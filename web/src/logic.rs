@@ -1,11 +1,8 @@
-use crate::{
-    authz::{Authorization, Authorizer},
-    error::Error,
-};
+use super::{error::Error, ExtendedAccount, ExtendedScreenNameResult};
 use chrono::{Duration, NaiveDate, Utc};
 use memory_lol::{
     db::{table::ReadOnly, Database},
-    model::{Account, ScreenNameResult},
+    model::Account,
 };
 use serde_json::{Map, Value};
 
@@ -20,8 +17,8 @@ fn lookup_ids(
     db: &Database<ReadOnly>,
     user_ids: &[u64],
     earliest: Option<NaiveDate>,
-) -> Result<Vec<Account>, Error> {
-    Ok(user_ids
+) -> Result<Vec<ExtendedAccount>, Error> {
+    user_ids
         .iter()
         .filter_map(
             |user_id| match db.limited_lookup_by_user_id(*user_id, earliest) {
@@ -29,51 +26,41 @@ fn lookup_ids(
                     if result.is_empty() {
                         None
                     } else {
-                        Some(Ok(Account::from_raw_result(*user_id, result)))
+                        Some(Ok(Account::from_raw_result(*user_id, result).into()))
                     }
                 }
                 Err(error) => Some(Err(Error::from(error))),
             },
         )
-        .collect::<Result<Vec<_>, Error>>()?)
+        .collect::<Result<Vec<_>, Error>>()
 }
 
-pub(crate) async fn by_user_id(
-    user_id: u64,
-    token_value: Option<&str>,
+pub(crate) fn by_user_id(
     db: &Database<ReadOnly>,
-    authorizer: &Authorizer,
-) -> Result<Account, Error> {
-    let authorization = match token_value {
-        Some(token) => authorizer.authorize(token).await?,
-        None => Authorization::default(),
-    };
-
-    let result = match authorization.access() {
-        Some(_) => db.lookup_by_user_id(user_id)?,
-        None => db.limited_lookup_by_user_id(
+    user_id: u64,
+    is_trusted: bool,
+) -> Result<ExtendedAccount, Error> {
+    let result = if is_trusted {
+        db.lookup_by_user_id(user_id)?
+    } else {
+        db.limited_lookup_by_user_id(
             user_id,
             Some(get_unauthorized_first_date(UNAUTHORIZED_DAY_LIMIT)),
-        )?,
+        )?
     };
 
-    Ok(Account::from_raw_result(user_id, result))
+    Ok(Account::from_raw_result(user_id, result).into())
 }
 
-pub(crate) async fn by_screen_name(
-    screen_name: String,
-    token_value: Option<&str>,
+pub(crate) fn by_screen_name(
     db: &Database<ReadOnly>,
-    authorizer: &Authorizer,
+    screen_name: String,
+    is_trusted: bool,
 ) -> Result<Value, Error> {
-    let authorization = match token_value {
-        Some(token) => authorizer.authorize(token).await?,
-        None => Authorization::default(),
-    };
-
-    let earliest = match authorization.access() {
-        Some(_) => None,
-        None => Some(get_unauthorized_first_date(UNAUTHORIZED_DAY_LIMIT)),
+    let earliest = if is_trusted {
+        None
+    } else {
+        Some(get_unauthorized_first_date(UNAUTHORIZED_DAY_LIMIT))
     };
 
     if screen_name.contains(',') {
@@ -83,7 +70,7 @@ pub(crate) async fn by_screen_name(
             if !screen_name.is_empty() {
                 let user_ids = db.lookup_by_screen_name(screen_name)?;
                 let accounts = lookup_ids(db, &user_ids, earliest)?;
-                let result = ScreenNameResult { accounts };
+                let result = ExtendedScreenNameResult { accounts };
 
                 if result.includes_screen_name(screen_name) {
                     map.insert(screen_name.to_string(), serde_json::to_value(result)?);
@@ -101,7 +88,7 @@ pub(crate) async fn by_screen_name(
 
         for (screen_name, user_ids) in results {
             let accounts = lookup_ids(db, &user_ids, earliest)?;
-            let result = ScreenNameResult { accounts };
+            let result = ExtendedScreenNameResult { accounts };
 
             if result.includes_screen_name(&screen_name) {
                 map.insert(screen_name.to_string(), serde_json::to_value(result)?);
@@ -112,12 +99,12 @@ pub(crate) async fn by_screen_name(
     } else {
         let user_ids = db.lookup_by_screen_name(&screen_name)?;
         let accounts = lookup_ids(db, &user_ids, earliest)?;
-        let result = ScreenNameResult { accounts };
+        let result = ExtendedScreenNameResult { accounts };
 
         let result = if result.includes_screen_name(&screen_name) {
             result
         } else {
-            ScreenNameResult::default()
+            ExtendedScreenNameResult::default()
         };
 
         Ok(serde_json::to_value(result)?)
