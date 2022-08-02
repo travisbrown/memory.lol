@@ -1,0 +1,17 @@
+{
+  "manifest_version": 2,
+  "name": "memory.lol",
+  "version": "0.1.0",
+  "content_scripts": [
+    {
+      "run_at": "document_end",
+      "js": ["memory_lol.js"],
+      "css": ["memory_lol.css"],
+      "matches": ["https://twitter.com/*", "https://mobile.twitter.com/*"]
+    }
+  ],
+  "permissions": ["https://api.memory.lol/*"],
+  "background": {
+    "scripts": ["background.js"]
+  }
+}

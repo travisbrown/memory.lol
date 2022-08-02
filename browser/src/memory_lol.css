@@ -1,0 +1,11 @@
+div.memory-lol {
+  padding-bottom: 1em;
+  /* Temporary hack */
+  font-family: TwitterChirp, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, Helvetica, Arial, sans-serif;
+}
+
+div.memory-lol a {
+  margin-right: 0;
+  text-decoration: none;
+}
