@@ -124,9 +124,12 @@ export function TwSearch() {
   const screenName = params.screenName === undefined ? null : params.screenName;
 
   useEffect(() => {
-    let query = userId !== null ? `/tw/id/${userId}` : `/tw/${screenName}`;
+    let query =
+      userId !== null
+        ? `${process.env.REACT_APP_API_ROOT}/v1/tw/id/${userId}`
+        : `${process.env.REACT_APP_API_ROOT}/v1/tw/${screenName}`;
 
-    fetch(query)
+    fetch(query, { credentials: "include" })
       .then((res) => res.json())
       .then(
         (new_result) => {

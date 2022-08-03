@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { Location } from "history";
+import { useLocation } from "react-router-dom";
 import { Button, Icon } from "react-bulma-components";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSignOut } from "@fortawesome/free-solid-svg-icons";
@@ -8,26 +10,24 @@ import {
   faTwitter,
 } from "@fortawesome/free-brands-svg-icons";
 
-const API_ROOT = "http://127.0.0.1:8000";
-
-const loginGitHub = () => {
-  window.sessionStorage.setItem("redirect", window.location.pathname);
-  window.location.replace(`${API_ROOT}/login/github`);
+const loginGitHub = (location: Location) => () => {
+  window.sessionStorage.setItem("redirect", location.pathname);
+  window.location.replace(`${process.env.REACT_APP_API_ROOT}/v1/login/github`);
 };
 
-const loginGoogle = () => {
-  window.sessionStorage.setItem("redirect", window.location.pathname);
-  window.location.replace(`${API_ROOT}/login/google`);
+const loginGoogle = (location: Location) => () => {
+  window.sessionStorage.setItem("redirect", location.pathname);
+  window.location.replace(`${process.env.REACT_APP_API_ROOT}/v1/login/google`);
 };
 
-const loginTwitter = () => {
-  window.sessionStorage.setItem("redirect", window.location.pathname);
-  window.location.replace(`${API_ROOT}/login/twitter`);
+const loginTwitter = (location: Location) => () => {
+  window.sessionStorage.setItem("redirect", location.pathname);
+  window.location.replace(`${process.env.REACT_APP_API_ROOT}/v1/login/twitter`);
 };
 
-const logoutAll = () => {
-  window.sessionStorage.setItem("redirect", window.location.pathname);
-  window.location.replace(`${API_ROOT}/logout`);
+const logoutAll = (location: Location) => () => {
+  window.sessionStorage.setItem("redirect", location.pathname);
+  window.location.replace(`${process.env.REACT_APP_API_ROOT}/v1/logout`);
 };
 
 interface LoginStatusState {
@@ -54,7 +54,9 @@ export function LoginStatus() {
   });
 
   useEffect(() => {
-    fetch("/login/status")
+    fetch(`${process.env.REACT_APP_API_ROOT}/v1/login/status`, {
+      credentials: "include",
+    })
       .then((res) => res.json())
       .then(
         (result) => {
@@ -85,6 +87,7 @@ export function LoginStatus() {
   let twitter_button;
 
   let any_logged_in = github !== null || google !== null || twitter !== null;
+  let location = useLocation();
 
   if (github) {
     let color = github.access.includes("trusted") ? "success" : "warning";
@@ -99,7 +102,7 @@ export function LoginStatus() {
     );
   } else {
     github_button = (
-      <Button color="light" onClick={loginGitHub}>
+      <Button color="light" onClick={loginGitHub(location)}>
         <Icon>
           <FontAwesomeIcon icon={faGithub} />
         </Icon>
@@ -121,7 +124,7 @@ export function LoginStatus() {
     );
   } else {
     google_button = (
-      <Button color="light" onClick={loginGoogle}>
+      <Button color="light" onClick={loginGoogle(location)}>
         <Icon>
           <FontAwesomeIcon icon={faGoogle} />
         </Icon>
@@ -143,7 +146,7 @@ export function LoginStatus() {
     );
   } else {
     twitter_button = (
-      <Button color="light" onClick={loginTwitter}>
+      <Button color="light" onClick={loginTwitter(location)}>
         <Icon>
           <FontAwesomeIcon icon={faTwitter} />
         </Icon>
@@ -161,7 +164,11 @@ export function LoginStatus() {
         {google_button}
         {twitter_button}
         {any_logged_in && (
-          <Button color="danger" colorVariant="light" onClick={logoutAll}>
+          <Button
+            color="danger"
+            colorVariant="light"
+            onClick={logoutAll(location)}
+          >
             <Icon>
               <FontAwesomeIcon icon={faSignOut} />
             </Icon>
@@ -176,7 +183,11 @@ export function LoginStatus() {
         {google_button}
         {twitter_button}
         {any_logged_in && (
-          <Button color="danger" colorVariant="light" onClick={logoutAll}>
+          <Button
+            color="danger"
+            colorVariant="light"
+            onClick={logoutAll(location)}
+          >
             <Icon>
               <FontAwesomeIcon icon={faSignOut} />
             </Icon>

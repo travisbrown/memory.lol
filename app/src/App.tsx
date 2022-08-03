@@ -9,7 +9,7 @@ import { TwSearch } from "./TwSearch";
 
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/app">
       <PostLoginRedirect />
       <Navbar aria-label="main navigation">
         <Navbar.Brand>
