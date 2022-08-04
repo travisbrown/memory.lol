@@ -1,156 +1,162 @@
-let started = false;
+let container: Element | null = null;
+let containerClasses: string | null = null;
+let linkClasses: string | null = null;
+let spanClasses: string | null = null;
 let currentUrl: string | null = null;
-let current_screen_name: string | null = null;
+
+/**
+ * Extract Twitter profile information from a script element.
+ *
+ * @param element A JSON-LD script element
+ * @returns The Twitter user ID and screen name of the current profile
+ */
+const getUserInfo: (element: Element) => [string, string] | null = (
+  element
+) => {
+  if (element) {
+    let ldJson: { author: { additionalName: string; identifier: string } } =
+      JSON.parse(element.textContent!);
+    let author = ldJson.author;
+
+    return [author.identifier, author.additionalName];
+  }
+
+  return null;
+};
+
+const updatePastScreenNames: (id: string, screenName: string) => void = (
+  id,
+  screenName
+) => {
+  container!.replaceChildren(container!.children[0]);
+  container!.setAttribute("style", "display: none;");
+
+  chrome.runtime.sendMessage({ id: id }, function (response) {
+    const currentScreenName = screenName.toLowerCase();
+    const screenNames = response.result;
+    const result = [];
+
+    for (const pastScreenName in screenNames) {
+      if (pastScreenName.toLowerCase() !== currentScreenName) {
+        result.push([pastScreenName, screenNames[pastScreenName]]);
+      }
+    }
+
+    if (result.length > 0) {
+      container!.removeAttribute("style");
+    }
+
+    for (let i = 0; i < result.length; i += 1) {
+      let [screenName, dates] = result[i];
+      let link = document.createElement("a");
+      link.setAttribute("class", linkClasses!);
+
+      link.setAttribute(
+        "href",
+        `http://web.archive.org/web/*/https://twitter.com/${screenName}/status/*`
+      );
+      link.textContent = `@${screenName}`;
+
+      if (dates) {
+        if (dates.length == 1) {
+          link.setAttribute("title", dates[0]);
+        } else if (dates.length == 2) {
+          link.setAttribute("title", `${dates[0]} to ${dates[1]}`);
+        }
+      }
+
+      container!.appendChild(link);
+
+      if (i < result.length - 1) {
+        let span = document.createElement("span");
+        span.setAttribute("class", spanClasses!);
+        span.textContent = " | ";
+        container!.appendChild(span);
+      }
+    }
+  });
+};
 
 const observe = () => {
   const observer = new MutationObserver((mutations) => {
-    if (mutations.length) {
-      if (window.location.href !== currentUrl) {
-        started = false;
-        currentUrl = window.location.href;
-        current_screen_name = get_current_screen_name();
-      }
+    for (const mutation of mutations) {
+      if (mutation.type === "childList") {
+        for (const node of mutation.removedNodes) {
+          if (node.nodeName === "SCRIPT") {
+            const element = node as HTMLElement;
 
-      if (!started && current_screen_name !== null) {
-        const current = document.getElementById("memory-lol");
-        if (current !== null) {
-          current.remove();
+            if (
+              element.getAttribute("type") === "application/ld+json" &&
+              // Firefox seems to remove and re-add the script element?
+              currentUrl != window.location.toString()
+            ) {
+              container!.replaceChildren(container!.children[0]);
+              container!.setAttribute("style", "display: none;");
+            }
+          }
         }
 
-        const followButton = document.querySelector(
-          "div[data-testid$='-follow']"
-        );
+        for (const node of mutation.addedNodes) {
+          if (node.nodeType == Node.ELEMENT_NODE) {
+            const element = node as Element;
 
-        if (followButton !== null && !started) {
-          started = true;
-          const testid = followButton.getAttribute("data-testid");
-          const id = testid!.substring(0, testid!.length - 7);
-
-          chrome.runtime.sendMessage({ id: id }, function (response) {
-            let screen_names = response.result;
-            let filtered = [];
-
-            for (var screen_name in screen_names) {
-              if (
-                screen_name.toLowerCase() !== current_screen_name!.toLowerCase()
-              ) {
-                filtered.push([screen_name, screen_names[screen_name]]);
-              }
-            }
-
-            if (filtered.length > 0) {
-              const userName = document.querySelector(
-                "div[data-testid='UserName']"
-              );
-              const userDescription = document.querySelector(
-                "div[data-testid='UserDescription']"
-              );
-              const userJoinDate = document.querySelector(
-                "span[data-testid='UserJoinDate']"
-              );
-              const UserProfileHeader_Items = document.querySelector(
-                "div[data-testid='UserProfileHeader_Items']"
-              );
-              const userUrl = document.querySelector(
-                "a[data-testid='UserUrl']"
+            if (containerClasses === null) {
+              let linkTemplate = element.querySelector(
+                "a[href='/i/keyboard_shortcuts']"
               );
 
-              if (userName) {
-                let div = document.createElement("div");
-                div.setAttribute("id", "memory-lol");
-                if (userDescription) {
-                  div.setAttribute(
-                    "class",
-                    `${userDescription.getAttribute("class")} memory-lol`
-                  );
-                } else {
-                  div.setAttribute(
-                    "class",
-                    `${userJoinDate!.getAttribute("class")} memory-lol`
-                  );
+              if (linkTemplate) {
+                if (linkTemplate.hasAttribute("class")) {
+                  linkClasses = linkTemplate.getAttribute("class")!;
                 }
 
-                let span = document.createElement("span");
-                if (userDescription) {
-                  span.setAttribute(
-                    "class",
-                    userDescription!.firstElementChild!.getAttribute("class")!
-                  );
-                } else {
-                  span.setAttribute(
-                    "class",
-                    `${userJoinDate!.children[1].getAttribute(
-                      "class"
-                    )} ${UserProfileHeader_Items!.getAttribute("class")}`
-                  );
-                }
-                span.innerHTML = "Previously: ";
-                div.appendChild(span);
+                if (linkTemplate.previousElementSibling) {
+                  let spanTemplate =
+                    linkTemplate.previousElementSibling.querySelector("span");
 
-                for (var i = 0; i < filtered.length; i += 1) {
-                  let pair = filtered[i];
-                  let link = document.createElement("a");
-                  if (userUrl) {
-                    link.setAttribute("class", userUrl.getAttribute("class")!);
-                  } else if (userDescription) {
-                    link.setAttribute(
-                      "class",
-                      userDescription.getAttribute("class")!
-                    );
-                  } else {
-                    span.setAttribute(
-                      "class",
-                      `${userJoinDate!.children[1].getAttribute(
+                  if (spanTemplate && spanTemplate.hasAttribute("class")) {
+                    spanClasses = spanTemplate.getAttribute("class");
+                  }
+
+                  if (
+                    linkTemplate.previousElementSibling.hasAttribute("class")
+                  ) {
+                    containerClasses =
+                      linkTemplate.previousElementSibling.getAttribute(
                         "class"
-                      )} ${UserProfileHeader_Items!.getAttribute("class")}`
-                    );
-                  }
-
-                  link.setAttribute(
-                    "href",
-                    `http://web.archive.org/web/*/https://twitter.com/${pair[0]}/status/*`
-                  );
-                  link.innerHTML = `@${pair[0]}`;
-
-                  if (pair[1] !== null) {
-                    if (pair[1].length == 1) {
-                      link.setAttribute("title", pair[1][0]);
-                    } else if (pair[1].length == 2) {
-                      link.setAttribute(
-                        "title",
-                        `${pair[1][0]} to ${pair[1][1]}`
-                      );
-                    }
-                  }
-
-                  div.appendChild(link);
-
-                  if (i < filtered.length - 1) {
-                    let span = document.createElement("span");
-                    if (userDescription) {
-                      span.setAttribute(
-                        "class",
-                        userDescription!.firstElementChild!.getAttribute(
-                          "class"
-                        )!
-                      );
-                    } else {
-                      span.setAttribute(
-                        "class",
-                        `${userJoinDate!.children[1].getAttribute(
-                          "class"
-                        )} ${UserProfileHeader_Items!.getAttribute("class")}`
-                      );
-                    }
-                    span.innerHTML = " | ";
-                    div.appendChild(span);
+                      )!;
+                    container!.setAttribute("class", containerClasses);
                   }
                 }
-
-                userName!.parentNode!.insertBefore(div, userName.nextSibling);
               }
             }
-          });
+
+            let userNameDiv = element.querySelector(
+              "div[data-testid='UserName']"
+            );
+
+            if (userNameDiv) {
+              userNameDiv.parentNode!.insertBefore(
+                container!,
+                userNameDiv.nextSibling
+              );
+            }
+
+            if (element.tagName === "SCRIPT") {
+              if (
+                element.getAttribute("type") === "application/ld+json" &&
+                // Firefox seems to remove and re-add the script element?
+                currentUrl != window.location.toString()
+              ) {
+                const userInfo = getUserInfo(element);
+
+                if (userInfo) {
+                  currentUrl = window.location.toString();
+                  updatePastScreenNames(userInfo[0], userInfo[1]);
+                }
+              }
+            }
+          }
         }
       }
     }
@@ -162,21 +168,25 @@ const observe = () => {
   });
 };
 
-function get_current_screen_name() {
-  const screen_name_path_re = /^\/(\w+)$/;
-  const path = window.location.pathname;
-  const screen_name_match = path.match(screen_name_path_re);
-  if (screen_name_match !== null) {
-    const screen_name = screen_name_match[1];
+const init = () => {
+  container = document.createElement("div");
+  container.setAttribute("id", "memory-lol");
+  container.setAttribute("style", "display: none");
+  let span = document.createElement("span");
+  span.textContent = "Previously: ";
+  container.appendChild(span);
 
-    if (screen_name !== "home") {
-      return screen_name;
+  let ldScript = document.querySelector("script[type='application/ld+json']");
+
+  if (ldScript) {
+    const userInfo = getUserInfo(ldScript);
+
+    if (userInfo) {
+      currentUrl = window.location.toString();
+      updatePastScreenNames(userInfo[0], userInfo[1]);
     }
   }
-  return null;
-}
 
-const init = () => {
   observe();
 };
 
