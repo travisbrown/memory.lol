@@ -14,10 +14,7 @@
           "type_info": "Text"
         }
       ],
-      "nullable": [
-        false,
-        false
-      ],
+      "nullable": [false, false],
       "parameters": {
         "Right": 1
       }
@@ -38,10 +35,7 @@
           "type_info": "Bool"
         }
       ],
-      "nullable": [
-        false,
-        false
-      ],
+      "nullable": [false, false],
       "parameters": {
         "Right": 1
       }
@@ -57,9 +51,7 @@
           "type_info": "Text"
         }
       ],
-      "nullable": [
-        false
-      ],
+      "nullable": [false],
       "parameters": {
         "Right": 1
       }
@@ -75,9 +67,7 @@
           "type_info": "Int64"
         }
       ],
-      "nullable": [
-        false
-      ],
+      "nullable": [false],
       "parameters": {
         "Right": 1
       }
@@ -103,9 +93,7 @@
           "type_info": "Text"
         }
       ],
-      "nullable": [
-        false
-      ],
+      "nullable": [false],
       "parameters": {
         "Right": 1
       }
@@ -141,9 +129,7 @@
           "type_info": "Text"
         }
       ],
-      "nullable": [
-        false
-      ],
+      "nullable": [false],
       "parameters": {
         "Right": 1
       }
@@ -194,12 +180,7 @@
           "type_info": "Text"
         }
       ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false
-      ],
+      "nullable": [false, false, false, false],
       "parameters": {
         "Right": 1
       }
@@ -225,9 +206,7 @@
           "type_info": "Text"
         }
       ],
-      "nullable": [
-        false
-      ],
+      "nullable": [false],
       "parameters": {
         "Right": 1
       }

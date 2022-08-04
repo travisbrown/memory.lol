@@ -36,7 +36,7 @@ function renderResults(results: [string | null, AccountResult][]) {
     blocks.push(
       <thead key={head_key}>
         <tr>
-          <th colSpan={3}>{title}</th>
+          <th colSpan={6}>{title}</th>
         </tr>
       </thead>
     );
@@ -59,6 +59,23 @@ function renderResults(results: [string | null, AccountResult][]) {
           </td>
           <td>{first}</td>
           <td>{last}</td>
+          <td>
+            <a
+              href={`https://twitter.com/intent/user?user_id=${result.id_str}`}
+            >
+              Current Twitter ID
+            </a>
+          </td>
+          <td>
+            <a href={`https://twitter.com/${key}`}>Current screen name</a>
+          </td>
+          <td>
+            <a
+              href={`https://web.archive.org/web/*/https://twitter.com/${key}/status/*`}
+            >
+              Wayback Machine
+            </a>
+          </td>
         </tr>
       );
     }
@@ -68,7 +85,7 @@ function renderResults(results: [string | null, AccountResult][]) {
 
   return (
     <Container>
-      <Table hoverable striped bordered>
+      <Table hoverable striped bordered size="fullwidth">
         {blocks}
       </Table>
     </Container>
@@ -107,9 +124,12 @@ export function TwSearch() {
   const screenName = params.screenName === undefined ? null : params.screenName;
 
   useEffect(() => {
-    let query = userId !== null ? `/tw/id/${userId}` : `/tw/${screenName}`;
+    let query =
+      userId !== null
+        ? `${process.env.REACT_APP_API_ROOT}/v1/tw/id/${userId}`
+        : `${process.env.REACT_APP_API_ROOT}/v1/tw/${screenName}`;
 
-    fetch(query)
+    fetch(query, { credentials: "include" })
       .then((res) => res.json())
       .then(
         (new_result) => {
