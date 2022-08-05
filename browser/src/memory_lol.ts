@@ -77,96 +77,85 @@ const updatePastScreenNames: (id: string, screenName: string) => void = (
   });
 };
 
-const observe = () => {
-  const observer = new MutationObserver((mutations) => {
-    for (const mutation of mutations) {
-      if (mutation.type === "childList") {
-        for (const node of mutation.removedNodes) {
-          if (node.nodeName === "SCRIPT") {
-            const element = node as HTMLElement;
+const observer = new MutationObserver((mutations) => {
+  for (const mutation of mutations) {
+    if (mutation.type === "childList") {
+      for (const node of mutation.removedNodes) {
+        if (node.nodeName === "SCRIPT") {
+          const element = node as HTMLElement;
 
+          if (
+            element.getAttribute("type") === "application/ld+json" &&
+            // Firefox seems to remove and re-add the script element?
+            currentUrl != window.location.toString()
+          ) {
+            container!.replaceChildren(container!.children[0]);
+            container!.setAttribute("style", "display: none;");
+          }
+        }
+      }
+
+      for (const node of mutation.addedNodes) {
+        if (node.nodeType == Node.ELEMENT_NODE) {
+          const element = node as Element;
+
+          if (containerClasses === null) {
+            let linkTemplate = element.querySelector(
+              "a[href='/i/keyboard_shortcuts']"
+            );
+
+            if (linkTemplate) {
+              if (linkTemplate.hasAttribute("class")) {
+                linkClasses = linkTemplate.getAttribute("class")!;
+              }
+
+              if (linkTemplate.previousElementSibling) {
+                let spanTemplate =
+                  linkTemplate.previousElementSibling.querySelector("span");
+
+                if (spanTemplate && spanTemplate.hasAttribute("class")) {
+                  spanClasses = spanTemplate.getAttribute("class");
+                }
+
+                if (linkTemplate.previousElementSibling.hasAttribute("class")) {
+                  containerClasses =
+                    linkTemplate.previousElementSibling.getAttribute("class")!;
+                  container!.setAttribute("class", containerClasses);
+                }
+              }
+            }
+          }
+
+          let userNameDiv = element.querySelector(
+            "div[data-testid='UserName']"
+          );
+
+          if (userNameDiv) {
+            userNameDiv.parentNode!.insertBefore(
+              container!,
+              userNameDiv.nextSibling
+            );
+          }
+
+          if (element.tagName === "SCRIPT") {
             if (
               element.getAttribute("type") === "application/ld+json" &&
               // Firefox seems to remove and re-add the script element?
               currentUrl != window.location.toString()
             ) {
-              container!.replaceChildren(container!.children[0]);
-              container!.setAttribute("style", "display: none;");
-            }
-          }
-        }
+              const userInfo = getUserInfo(element);
 
-        for (const node of mutation.addedNodes) {
-          if (node.nodeType == Node.ELEMENT_NODE) {
-            const element = node as Element;
-
-            if (containerClasses === null) {
-              let linkTemplate = element.querySelector(
-                "a[href='/i/keyboard_shortcuts']"
-              );
-
-              if (linkTemplate) {
-                if (linkTemplate.hasAttribute("class")) {
-                  linkClasses = linkTemplate.getAttribute("class")!;
-                }
-
-                if (linkTemplate.previousElementSibling) {
-                  let spanTemplate =
-                    linkTemplate.previousElementSibling.querySelector("span");
-
-                  if (spanTemplate && spanTemplate.hasAttribute("class")) {
-                    spanClasses = spanTemplate.getAttribute("class");
-                  }
-
-                  if (
-                    linkTemplate.previousElementSibling.hasAttribute("class")
-                  ) {
-                    containerClasses =
-                      linkTemplate.previousElementSibling.getAttribute(
-                        "class"
-                      )!;
-                    container!.setAttribute("class", containerClasses);
-                  }
-                }
-              }
-            }
-
-            let userNameDiv = element.querySelector(
-              "div[data-testid='UserName']"
-            );
-
-            if (userNameDiv) {
-              userNameDiv.parentNode!.insertBefore(
-                container!,
-                userNameDiv.nextSibling
-              );
-            }
-
-            if (element.tagName === "SCRIPT") {
-              if (
-                element.getAttribute("type") === "application/ld+json" &&
-                // Firefox seems to remove and re-add the script element?
-                currentUrl != window.location.toString()
-              ) {
-                const userInfo = getUserInfo(element);
-
-                if (userInfo) {
-                  currentUrl = window.location.toString();
-                  updatePastScreenNames(userInfo[0], userInfo[1]);
-                }
+              if (userInfo) {
+                currentUrl = window.location.toString();
+                updatePastScreenNames(userInfo[0], userInfo[1]);
               }
             }
           }
         }
       }
     }
-  });
-
-  observer.observe(document, {
-    childList: true,
-    subtree: true,
-  });
-};
+  }
+});
 
 const init = () => {
   container = document.createElement("div");
@@ -187,7 +176,10 @@ const init = () => {
     }
   }
 
-  observe();
+  observer.observe(document, {
+    childList: true,
+    subtree: true,
+  });
 };
 
 init();
