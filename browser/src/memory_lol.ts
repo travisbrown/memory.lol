@@ -14,9 +14,9 @@ const getUserInfo: (element: Element) => [string, string] | null = (
   element
 ) => {
   if (element) {
-    let ldJson: { author: { additionalName: string; identifier: string } } =
+    const ldJson: { author: { additionalName: string; identifier: string } } =
       JSON.parse(element.textContent!);
-    let author = ldJson.author;
+    const author = ldJson.author;
 
     return [author.identifier, author.additionalName];
   }
@@ -34,21 +34,21 @@ const updatePastScreenNames: (id: string, screenName: string) => void = (
   chrome.runtime.sendMessage({ id: id }, function (response) {
     const currentScreenName = screenName.toLowerCase();
     const screenNames = response.result;
-    const result = [];
+    const results = [];
 
     for (const pastScreenName in screenNames) {
       if (pastScreenName.toLowerCase() !== currentScreenName) {
-        result.push([pastScreenName, screenNames[pastScreenName]]);
+        results.push([pastScreenName, screenNames[pastScreenName]]);
       }
     }
 
-    if (result.length > 0) {
+    if (results.length > 0) {
       container!.removeAttribute("style");
     }
 
-    for (let i = 0; i < result.length; i += 1) {
-      let [screenName, dates] = result[i];
-      let link = document.createElement("a");
+    for (const [index, result] of results.entries()) {
+      const [screenName, dates] = result;
+      const link = document.createElement("a");
       link.setAttribute("class", linkClasses!);
 
       link.setAttribute(
@@ -67,8 +67,8 @@ const updatePastScreenNames: (id: string, screenName: string) => void = (
 
       container!.appendChild(link);
 
-      if (i < result.length - 1) {
-        let span = document.createElement("span");
+      if (index < results.length - 1) {
+        const span = document.createElement("span");
         span.setAttribute("class", spanClasses!);
         span.textContent = " | ";
         container!.appendChild(span);
@@ -100,7 +100,7 @@ const observer = new MutationObserver((mutations) => {
           const element = node as Element;
 
           if (containerClasses === null) {
-            let linkTemplate = element.querySelector(
+            const linkTemplate = element.querySelector(
               "a[href='/i/keyboard_shortcuts']"
             );
 
@@ -110,7 +110,7 @@ const observer = new MutationObserver((mutations) => {
               }
 
               if (linkTemplate.previousElementSibling) {
-                let spanTemplate =
+                const spanTemplate =
                   linkTemplate.previousElementSibling.querySelector("span");
 
                 if (spanTemplate && spanTemplate.hasAttribute("class")) {
@@ -126,7 +126,7 @@ const observer = new MutationObserver((mutations) => {
             }
           }
 
-          let userNameDiv = element.querySelector(
+          const userNameDiv = element.querySelector(
             "div[data-testid='UserName']"
           );
 
@@ -161,11 +161,11 @@ const init = () => {
   container = document.createElement("div");
   container.setAttribute("id", "memory-lol");
   container.setAttribute("style", "display: none");
-  let span = document.createElement("span");
+  const span = document.createElement("span");
   span.textContent = "Previously: ";
   container.appendChild(span);
 
-  let ldScript = document.querySelector("script[type='application/ld+json']");
+  const ldScript = document.querySelector("script[type='application/ld+json']");
 
   if (ldScript) {
     const userInfo = getUserInfo(ldScript);
