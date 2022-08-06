@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "content_scripts": [
     {
-      "run_at": "document_end",
+      "run_at": "document_idle",
       "js": ["memory_lol.js"],
       "css": ["memory_lol.css"],
       "matches": ["https://twitter.com/*", "https://mobile.twitter.com/*"]
