@@ -33,18 +33,19 @@ impl<M> Table for AccountTable<M> {
         let mut id_count = 0;
         let mut last_id = 0;
 
-        let mut iter = self.db.iterator(IteratorMode::Start);
+        let iter = self.db.iterator(IteratorMode::Start);
 
-        for (key, _) in iter.by_ref() {
+        for result in iter {
+            let (key, _) = result?;
             pair_count += 1;
+
             let id = key_prefix_to_id(&key)?;
+
             if id != last_id {
                 id_count += 1;
                 last_id = id;
             }
         }
-
-        iter.status()?;
 
         Ok(Self::Counts {
             id_count,
@@ -62,22 +63,22 @@ impl<M> AccountTable<M> {
 
     pub fn lookup(&self, id: u64) -> Result<HashMap<String, Vec<NaiveDate>>, Error> {
         let prefix = id_to_key_prefix(id);
-        let mut iter = self.db.prefix_iterator(prefix);
-        let mut result = HashMap::new();
+        let iter = self.db.prefix_iterator(prefix);
+        let mut results = HashMap::new();
 
-        for (key, value) in iter.by_ref() {
+        for result in iter {
+            let (key, value) = result?;
             let (next_id, next_screen_name) = key_to_pair(&key)?;
+
             if next_id == id {
                 let dates = value_to_dates(&value)?;
-                result.insert(next_screen_name.to_string(), dates);
+                results.insert(next_screen_name.to_string(), dates);
             } else {
                 break;
             }
         }
 
-        iter.status()?;
-
-        Ok(result)
+        Ok(results)
     }
 
     pub fn limited_lookup(
@@ -86,31 +87,32 @@ impl<M> AccountTable<M> {
         earliest: NaiveDate,
     ) -> Result<HashMap<String, Vec<NaiveDate>>, Error> {
         let prefix = id_to_key_prefix(id);
-        let mut iter = self.db.prefix_iterator(prefix);
-        let mut result = HashMap::new();
+        let iter = self.db.prefix_iterator(prefix);
+        let mut results = HashMap::new();
 
-        for (key, value) in iter.by_ref() {
+        for result in iter {
+            let (key, value) = result?;
             let (next_id, next_screen_name) = key_to_pair(&key)?;
+
             if next_id == id {
                 let dates = value_to_dates(&value)?;
                 if dates.iter().any(|date| date >= &earliest) {
-                    result.insert(next_screen_name.to_string(), dates);
+                    results.insert(next_screen_name.to_string(), dates);
                 }
             } else {
                 break;
             }
         }
 
-        iter.status()?;
-
-        Ok(result)
+        Ok(results)
     }
 
     pub fn get_date_counts(&self) -> Result<Vec<(NaiveDate, u64)>, Error> {
         let mut map = HashMap::new();
-        let mut iter = self.db.iterator(IteratorMode::Start);
+        let iter = self.db.iterator(IteratorMode::Start);
 
-        for (_, value) in iter.by_ref() {
+        for result in iter {
+            let (_, value) = result?;
             let dates = value_to_dates(&value)?;
 
             for date in dates {
@@ -118,8 +120,6 @@ impl<M> AccountTable<M> {
                 *count += 1;
             }
         }
-
-        iter.status()?;
 
         let mut result = map.into_iter().collect::<Vec<_>>();
         result.sort();
@@ -129,12 +129,14 @@ impl<M> AccountTable<M> {
 
     pub fn get_most_screen_names(&self, k: usize) -> Result<Vec<(u64, Vec<String>)>, Error> {
         let mut queue = priority_queue::DoublePriorityQueue::with_capacity(k);
-        let mut iter = self.db.iterator(IteratorMode::Start);
+        let iter = self.db.iterator(IteratorMode::Start);
         let mut last_id = 0;
         let mut current: Vec<String> = vec![];
 
-        for (key, _) in iter.by_ref() {
+        for result in iter {
+            let (key, _) = result?;
             let (id, screen_name) = key_to_pair(&key)?;
+
             if id != last_id {
                 let min = queue.peek_min().map(|(_, count)| *count).unwrap_or(0);
                 let len = current.len();
@@ -153,8 +155,6 @@ impl<M> AccountTable<M> {
             }
             current.push(screen_name.to_string());
         }
-
-        iter.status()?;
 
         Ok(queue.into_descending_sorted_vec())
     }
@@ -203,10 +203,12 @@ impl AccountTable<Writeable> {
     }
 
     pub fn compact_ranges(&self) -> Result<(), Error> {
-        let mut iter = self.db.iterator(IteratorMode::Start);
+        let iter = self.db.iterator(IteratorMode::Start);
 
-        for (key, value) in iter.by_ref() {
+        for result in iter {
+            let (key, value) = result?;
             let mut dates = value_to_dates(&value)?;
+
             // If we don't have more than a range we don't need to compact
             if dates.len() > 2 {
                 dates.sort();
@@ -237,8 +239,6 @@ impl AccountTable<Writeable> {
                 self.db.put(key, new_value)?;
             }
         }
-
-        iter.status()?;
 
         Ok(())
     }
@@ -306,13 +306,11 @@ impl Iterator for PairIterator<'_> {
     type Item = Result<(u64, String, Vec<NaiveDate>), Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.underlying.next() {
-            Some((key, value)) => Some(kv_to_item(&key, &value)),
-            None => match self.underlying.status() {
-                Ok(()) => None,
-                Err(error) => Some(Err(Error::from(error))),
-            },
-        }
+        self.underlying.next().map(|result| {
+            result
+                .map_err(Error::from)
+                .and_then(|(key, value)| kv_to_item(&key, &value))
+        })
     }
 }
 
