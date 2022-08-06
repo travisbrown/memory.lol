@@ -15,7 +15,7 @@ csv = "1"
 indexmap = { version = "1", features = ["serde"] }
 log = "0.4"
 memory-lol = { path = "../core" }
-rocksdb = { version = "0.18", default-features = false, features = ["snappy"] }
+rocksdb = { version = "0.19", default-features = false, features = ["snappy"] }
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = { version = "1.0", features = ["preserve_order"] }

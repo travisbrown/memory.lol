@@ -30,9 +30,11 @@ impl<M> Table for ScreenNameTable<M> {
         let mut screen_name_count = 0;
         let mut mapping_count = 0;
 
-        let mut iter = self.db.as_ref().unwrap().iterator(IteratorMode::Start);
+        let iter = self.db.as_ref().unwrap().iterator(IteratorMode::Start);
 
-        for (_, value) in iter.by_ref() {
+        for result in iter {
+            let (_, value) = result?;
+
             screen_name_count += 1;
             let value_len = value.len();
 
@@ -42,8 +44,6 @@ impl<M> Table for ScreenNameTable<M> {
                 return Err(Error::InvalidValue(value.to_vec()));
             }
         }
-
-        iter.status()?;
 
         Ok(Self::Counts {
             screen_name_count,
@@ -78,30 +78,31 @@ impl<M> ScreenNameTable<M> {
         limit: usize,
     ) -> Result<Vec<(String, Vec<u64>)>, Error> {
         let prefix = screen_name_to_key(screen_name);
-        let mut iter = self.db.as_ref().unwrap().prefix_iterator(&prefix);
-        let mut result = Vec::with_capacity(1);
+        let iter = self.db.as_ref().unwrap().prefix_iterator(&prefix);
+        let mut results = Vec::with_capacity(1);
 
-        for (key, value) in iter.by_ref().take(limit) {
+        for result in iter.take(limit) {
+            let (key, value) = result?;
+
             if key.starts_with(&prefix) {
                 let screen_name = key_to_screen_name(&key)?;
                 let ids = value_to_ids(&value)?;
 
-                result.push((screen_name.to_string(), ids));
+                results.push((screen_name.to_string(), ids));
             } else {
                 break;
             }
         }
 
-        iter.status()?;
-
-        Ok(result)
+        Ok(results)
     }
 
     pub fn get_most_reused(&self, k: usize) -> Result<Vec<(String, Vec<u64>)>, Error> {
         let mut queue = priority_queue::DoublePriorityQueue::with_capacity(k);
-        let mut iter = self.db.as_ref().unwrap().iterator(IteratorMode::Start);
+        let iter = self.db.as_ref().unwrap().iterator(IteratorMode::Start);
 
-        for (key, value) in iter.by_ref() {
+        for result in iter {
+            let (key, value) = result?;
             let screen_name = key_to_screen_name(&key)?;
             let ids = value_to_ids(&value)?;
 
@@ -116,8 +117,6 @@ impl<M> ScreenNameTable<M> {
                 }
             }
         }
-
-        iter.status()?;
 
         Ok(queue.into_descending_sorted_vec())
     }
