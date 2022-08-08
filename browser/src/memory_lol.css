@@ -1,4 +1,5 @@
 div#memory-lol {
+  position: relative;
   padding-bottom: 1em;
   /* Temporary hack */
   font-family: TwitterChirp, -apple-system, BlinkMacSystemFont, "Segoe UI",
@@ -10,10 +11,30 @@ div#memory-lol a {
   text-decoration: none;
 }
 
-div#memory-lol > div#non-existent-user-ids {
+div#memory-lol > div.non-existent-user-ids {
   padding-top: 1em;
 }
 
-div#memory-lol > div#non-existent-user-screen-names {
+div#memory-lol > div.non-existent-user-screen-names {
   padding-top: 0.5em;
+}
+
+div#memory-lol > div#memory-lol-status {
+  position: absolute;
+  top: 0em;
+  right: 0.5em;
+  display: inline-block;
+  transform: rotate(45deg);
+  height: 0.5em;
+  width: 0.25em;
+  margin-left: 60%;
+}
+
+div#memory-lol > div#memory-lol-status.trusted {
+  border-bottom: 0.2em solid #78b13f;
+  border-right: 0.2em solid #78b13f;
+}
+
+div#memory-lol > div#memory-lol-status.untrusted {
+  border: none;
 }

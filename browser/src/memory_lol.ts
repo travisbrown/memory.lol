@@ -24,12 +24,29 @@ const getUserInfo: (element: Element) => [string, string] | null = (
   return null;
 };
 
+const updateStatus: (statusDiv: Element) => void = (statusDiv) => {
+  chrome.runtime.sendMessage(
+    { query: "status" },
+    function (response: {
+      result: { [key: string]: { access: [string] } | null };
+    }) {
+      const result = response.result;
+      statusDiv.className = "untrusted";
+      for (const [provider, value] of Object.entries(result)) {
+        if (value && value.access.includes("trusted")) {
+          statusDiv.className = "trusted";
+        }
+      }
+    }
+  );
+};
+
 const updatePastScreenNames: (id: string, screenName: string) => void = (
   id,
   screenName
 ) => {
   container!.setAttribute("style", "display: none;");
-  container!.replaceChildren();
+  container!.replaceChildren(container!.children[0]);
 
   chrome.runtime.sendMessage({ id: id }, function (response) {
     const currentScreenName = screenName.toLowerCase();
@@ -81,7 +98,7 @@ const updatePastScreenNames: (id: string, screenName: string) => void = (
 };
 
 const updateForNonExistent: (screenName: string) => void = (screenName) => {
-  container!.replaceChildren();
+  container!.replaceChildren(container!.children[0]);
   container!.setAttribute("style", "display: none;");
 
   chrome.runtime.sendMessage(
@@ -111,7 +128,7 @@ const updateForNonExistent: (screenName: string) => void = (screenName) => {
         container!.removeAttribute("style");
 
         const div = document.createElement("div");
-        div.setAttribute("id", "non-existent-user-ids");
+        div.setAttribute("class", "non-existent-user-ids");
 
         const span = document.createElement("span");
         span.textContent =
@@ -142,7 +159,7 @@ const updateForNonExistent: (screenName: string) => void = (screenName) => {
 
         if (possibleScreenNames.length > 0) {
           const div = document.createElement("div");
-          div.setAttribute("id", "non-existent-user-screen-names");
+          div.setAttribute("class", "non-existent-user-screen-names");
 
           const span = document.createElement("span");
           span.textContent =
@@ -303,6 +320,11 @@ const init = () => {
   container = document.createElement("div");
   container.setAttribute("id", "memory-lol");
   container.setAttribute("style", "display: none");
+
+  const statusDiv = document.createElement("div");
+  statusDiv.setAttribute("id", "memory-lol-status");
+  container.appendChild(statusDiv);
+  updateStatus(statusDiv);
 
   const ldScript = document.querySelector("script[type='application/ld+json']");
 
