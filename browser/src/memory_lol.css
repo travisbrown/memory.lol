@@ -9,3 +9,11 @@ div#memory-lol a {
   margin-right: 0;
   text-decoration: none;
 }
+
+div#memory-lol > div#non-existent-user-ids {
+  padding-top: 1em;
+}
+
+div#memory-lol > div#non-existent-user-screen-names {
+  padding-top: 0.5em;
+}
