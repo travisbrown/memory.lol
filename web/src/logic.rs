@@ -1,4 +1,4 @@
-use super::{error::Error, ExtendedAccount, ExtendedScreenNameResult};
+use super::{error::Error, inclusions::Inclusions, ExtendedAccount, ExtendedScreenNameResult};
 use chrono::{Duration, NaiveDate, Utc};
 use memory_lol::{
     db::{table::ReadOnly, Database},
@@ -16,12 +16,19 @@ fn get_unauthorized_first_date(limit: i64) -> NaiveDate {
 fn lookup_ids(
     db: &Database<ReadOnly>,
     user_ids: &[u64],
+    inclusions: &Inclusions,
     earliest: Option<NaiveDate>,
 ) -> Result<Vec<ExtendedAccount>, Error> {
     user_ids
         .iter()
-        .filter_map(
-            |user_id| match db.limited_lookup_by_user_id(*user_id, earliest) {
+        .filter_map(|user_id| {
+            let result = if inclusions.contains(*user_id) {
+                db.lookup_by_user_id(*user_id)
+            } else {
+                db.limited_lookup_by_user_id(*user_id, earliest)
+            };
+
+            match result {
                 Ok(result) => {
                     if result.is_empty() {
                         None
@@ -30,8 +37,8 @@ fn lookup_ids(
                     }
                 }
                 Err(error) => Some(Err(Error::from(error))),
-            },
-        )
+            }
+        })
         .collect::<Result<Vec<_>, Error>>()
 }
 
@@ -55,6 +62,7 @@ pub(crate) fn by_user_id(
 pub(crate) fn by_screen_name(
     db: &Database<ReadOnly>,
     screen_name: String,
+    inclusions: &Inclusions,
     is_trusted: bool,
 ) -> Result<Value, Error> {
     let earliest = if is_trusted {
@@ -69,7 +77,7 @@ pub(crate) fn by_screen_name(
         for screen_name in screen_name.split(',') {
             if !screen_name.is_empty() {
                 let user_ids = db.lookup_by_screen_name(screen_name)?;
-                let accounts = lookup_ids(db, &user_ids, earliest)?;
+                let accounts = lookup_ids(db, &user_ids, inclusions, earliest)?;
                 let result = ExtendedScreenNameResult { accounts };
 
                 if result.includes_screen_name(screen_name) {
@@ -87,7 +95,7 @@ pub(crate) fn by_screen_name(
         )?;
 
         for (screen_name, user_ids) in results {
-            let accounts = lookup_ids(db, &user_ids, earliest)?;
+            let accounts = lookup_ids(db, &user_ids, inclusions, earliest)?;
             let result = ExtendedScreenNameResult { accounts };
 
             if result.includes_screen_name(&screen_name) {
@@ -98,7 +106,7 @@ pub(crate) fn by_screen_name(
         Ok(serde_json::to_value(map)?)
     } else {
         let user_ids = db.lookup_by_screen_name(&screen_name)?;
-        let accounts = lookup_ids(db, &user_ids, earliest)?;
+        let accounts = lookup_ids(db, &user_ids, inclusions, earliest)?;
         let result = ExtendedScreenNameResult { accounts };
 
         let result = if result.includes_screen_name(&screen_name) {

@@ -22,6 +22,8 @@ pub enum Error {
     GoogleOpenId(#[from] memory_lol_auth::google::Error),
     #[error("Twitter OAuth error")]
     TwitterOAuth(#[from] memory_lol_auth::twitter::Error),
+    #[error("Invalid inclusion file line")]
+    InvalidInclusionFileLine(String),
 }
 
 impl<'r, 'o: 'r> Responder<'r, 'o> for Error {
