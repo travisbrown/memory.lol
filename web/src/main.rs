@@ -25,11 +25,13 @@ use serde_json::Value;
 
 mod auth;
 mod error;
+mod inclusions;
 mod logic;
 mod snowflake;
 mod util;
 
 use error::Error;
+use inclusions::Inclusions;
 
 fn provider_fairing<P: IsProvider>() -> impl Fairing {
     OAuth2::<P>::fairing(P::provider().name())
@@ -41,6 +43,7 @@ pub struct AppConfig {
     authorization: String,
     domain: Option<String>,
     default_login_redirect_uri: rocket::http::uri::Reference<'static>,
+    inclusions: Option<String>,
 }
 
 #[derive(Debug, Default, Eq, PartialEq, Serialize)]
@@ -93,11 +96,17 @@ async fn by_user_id(
     user_id: u64,
     cookies: &CookieJar<'_>,
     db: &State<Database<ReadOnly>>,
+    inclusions: &State<Inclusions>,
     authorizer: &State<SqliteAuthorizer>,
     connection: Connection<Auth>,
 ) -> Result<Json<ExtendedAccount>, Error> {
-    let is_trusted = auth::lookup_is_trusted(cookies, authorizer, connection).await?;
-    let account = crate::logic::by_user_id(db, user_id, is_trusted)?;
+    let full_results = if inclusions.contains(user_id) {
+        true
+    } else {
+        auth::lookup_is_trusted(cookies, authorizer, connection).await?
+    };
+
+    let account = crate::logic::by_user_id(db, user_id, full_results)?;
 
     Ok(Json(account))
 }
@@ -107,29 +116,34 @@ async fn by_user_id_post(
     user_id: u64,
     with_token: Form<WithToken<'_>>,
     db: &State<Database<ReadOnly>>,
+    inclusions: &State<Inclusions>,
     authorizer: &State<SqliteAuthorizer>,
     mut connection: Connection<Auth>,
 ) -> Result<Json<ExtendedAccount>, Error> {
-    let authorization = authorizer
-        .authorize_github(&mut connection, with_token.token)
-        .await?;
+    let full_results = if inclusions.contains(user_id) {
+        true
+    } else {
+        let authorization = authorizer
+            .authorize_github(&mut connection, with_token.token)
+            .await?;
 
-    let access = match authorization {
-        None => {
-            authorizer
-                .save_github_token(&mut connection, with_token.token)
-                .await?;
+        match authorization {
+            None => {
+                authorizer
+                    .save_github_token(&mut connection, with_token.token)
+                    .await?;
 
-            authorizer
-                .authorize_github(&mut connection, with_token.token)
-                .await?
-                .map(|authorization| authorization.is_trusted())
-                .unwrap_or(false)
+                authorizer
+                    .authorize_github(&mut connection, with_token.token)
+                    .await?
+                    .map(|authorization| authorization.is_trusted())
+                    .unwrap_or(false)
+            }
+            Some(authorization) => authorization.is_trusted(),
         }
-        Some(authorization) => authorization.is_trusted(),
     };
 
-    let account = crate::logic::by_user_id(db, user_id, access)?;
+    let account = crate::logic::by_user_id(db, user_id, full_results)?;
 
     Ok(Json(account))
 }
@@ -139,11 +153,12 @@ async fn by_screen_name(
     screen_name_query: String,
     cookies: &CookieJar<'_>,
     db: &State<Database<ReadOnly>>,
+    inclusions: &State<Inclusions>,
     authorizer: &State<SqliteAuthorizer>,
     connection: Connection<Auth>,
 ) -> Result<Json<Value>, Error> {
     let is_trusted = auth::lookup_is_trusted(cookies, authorizer, connection).await?;
-    let result = crate::logic::by_screen_name(db, screen_name_query, is_trusted)?;
+    let result = crate::logic::by_screen_name(db, screen_name_query, inclusions, is_trusted)?;
 
     Ok(Json(result))
 }
@@ -153,6 +168,7 @@ async fn by_screen_name_post(
     screen_name_query: String,
     with_token: Form<WithToken<'_>>,
     db: &State<Database<ReadOnly>>,
+    inclusions: &State<Inclusions>,
     authorizer: &State<SqliteAuthorizer>,
     mut connection: Connection<Auth>,
 ) -> Result<Json<Value>, Error> {
@@ -174,7 +190,7 @@ async fn by_screen_name_post(
         }
         Some(authorization) => authorization.is_trusted(),
     };
-    let result = crate::logic::by_screen_name(db, screen_name_query, access)?;
+    let result = crate::logic::by_screen_name(db, screen_name_query, inclusions, access)?;
 
     Ok(Json(result))
 }
@@ -186,6 +202,12 @@ fn rocket() -> _ {
         .attach(AdHoc::try_on_ignite("Open database", |rocket| async {
             match init_db(&rocket) {
                 Some(db) => Ok(rocket.manage(db)),
+                None => Err(rocket),
+            }
+        }))
+        .attach(AdHoc::try_on_ignite("Inclusions", |rocket| async {
+            match init_inclusions(&rocket) {
+                Some(inclusions) => Ok(rocket.manage(inclusions)),
                 None => Err(rocket),
             }
         }))
@@ -225,6 +247,15 @@ fn rocket() -> _ {
 fn init_db(rocket: &Rocket<Build>) -> Option<Database<ReadOnly>> {
     let config = rocket.state::<AppConfig>()?;
     Database::<ReadOnly>::open(&config.db).ok()
+}
+
+fn init_inclusions(rocket: &Rocket<Build>) -> Option<Inclusions> {
+    let config = rocket.state::<AppConfig>()?;
+
+    match &config.inclusions {
+        Some(path) => Inclusions::read_file(path).ok(),
+        None => Some(Inclusions::default()),
+    }
 }
 
 async fn init_authorization(rocket: &Rocket<Build>) -> Option<SqliteAuthorizer> {
