@@ -28,23 +28,26 @@ and your request will be handled privately.
 
 ### Current access restrictions
 
-Public access to the tool is currently limited to screen names that have been observed in the last week (this will probably be increased to two or three months at some point).
+In most cases public access to the tool is currently limited to historical facts that have been observed in the past 60 days. There are two exceptions to this rule:
+
+* Some accounts are excluded at the request of the account owner.
+* Full histories are provided for a set of accounts compiled from [several "bad actor" lists](https://github.com/travisbrown/memory.lol/pull/21).
 
 The full twelve years and half a billion screen names (minus requested exclusions) are available to a trusted group of researchers, journalists, and activists.
-The service currently only supports authenticating via a GitHub account, but it's likely
-that it will also support signing in via Google and Twitter in the future.
 
-The service only uses GitHub for authentication, doesn't require any non-public or write access to the user's GitHub account, will never request any kind of password, and only the user's GitHub ID is stored on the servers.
+The service currently supports authenticating via a GitHub or Google account.
+
+The service only uses GitHub (or Google) for authentication, doesn't require any non-public or write access to the user's accounts, will never request any kind of password, and only the user's public information is stored on the servers.
 
 The service does not currently log requests in a way that would allow anyone with access to the server to link individual queries to specific authorized users,
 but I reserve the right to implement such logging in the future if there's any suggestion of abuse.
 
-To log in visit [`https://memory.lol/login/github`](https://memory.lol/login/github),
+To log in visit [`https://api.memory.lol/v1/login/github`](https://api.memory.lol/v1/login/github),
 which will take you to a GitHub "Authorize memory.lol" page that will ask you to authorize "Limited access to your public data".
-Click "Authorize" and you'll be taken to a [status URL](https://memory.lol/login/status) that will show your current access level (which will be empty unless your account has been specifically approved for access).
+Click "Authorize" and you'll be taken to a [status URL](https://api.memory.lol/v1/login/status) that will show your current access level (which will be empty unless your account has been specifically approved for access).
 From there the full index will be available (if your account has been approved).
 
-To log out go to [`https://memory.lol/logout`](https://memory.lol/logout).
+To log out go to [`https://api.memory.lol/v1/logout`](https://api.memory.lol/v1/logout).
 
 It's possible to use the full version of the service from the command-line via GitHub's [device flow][github-device-flow],
 but this currently isn't very convenient (see [instructions below](#authorized-access-via-device-flow)).
@@ -61,17 +64,17 @@ Being able to look up historical social media profiles often makes it possible t
 
 Here are a few examples off the top of my head (the first three are examples of the service in action, and the last two show how it can be used to confirm the work of others):
 
-* [**`@OSINT_Ukraine`**](https://memory.lol/tw/OSINT_Ukraine): gained a large following in February 2022; looking up old screen names shows that [it had previously been an NFT scam account](https://twitter.com/travisbrown/status/1496784753705598977).
-* [**`@libsoftiktok`**](https://memory.lol/tw/libsoftiktok): a [viral hate account](https://www.washingtonpost.com/technology/2022/04/19/libs-of-tiktok-right-wing-media/) that targets LGBTQ+ people; looking up her screen name in this service is how I found her name (Chaya Raichik) a couple of months ago.
-* [**`@_lktk`**](https://memory.lol/tw//_lktk): an abusively transphobic troll named Iratxo Lorca who has been active in the Scala community for years; he was [one of the first people](https://gist.github.com/travisbrown/a704b52d3013471321e5ee6a6b3ff9e6) I identified using this service.
-* [**`@Mormonger`**](https://memory.lol/tw/Mormonger): a homophobic Mormon who was [identified as a person named Cole Noorda](https://exposedeznat.noblogs.org/tag/cole-noorda/) last September; this service confirms that he had previously used the screen name `@colenoorda` for his account.
-* [**`@_14words_`**](https://memory.lol/tw/_14words_): an account that was [identified as white supremacist Illinois cop Aaron P. Nichols](https://accollective.noblogs.org/post/2022/04/01/magic-dirt-farmer/) earlier this year; this service connects this account to the screen name `@spd584`.
+* [**`@OSINT_Ukraine`**](https://api.memory.lol/v1/tw/OSINT_Ukraine): gained a large following in February 2022; looking up old screen names shows that [it had previously been an NFT scam account](https://twitter.com/travisbrown/status/1496784753705598977).
+* [**`@libsoftiktok`**](https://api.memory.lol/v1/tw/libsoftiktok): a [viral hate account](https://www.washingtonpost.com/technology/2022/04/19/libs-of-tiktok-right-wing-media/) that targets LGBTQ+ people; looking up her screen name in this service is how I found her name (Chaya Raichik) a couple of months ago.
+* [**`@_lktk`**](https://api.memory.lol/v1/tw/_lktk): an abusively transphobic troll named Iratxo Lorca who has been active in the Scala community for years; he was [one of the first people](https://gist.github.com/travisbrown/a704b52d3013471321e5ee6a6b3ff9e6) I identified using this service.
+* [**`@Mormonger`**](https://api.memory.lol/v1/tw/Mormonger): a homophobic Mormon who was [identified as a person named Cole Noorda](https://exposedeznat.noblogs.org/tag/cole-noorda/) last September; this service confirms that he had previously used the screen name `@colenoorda` for his account.
+* [**`@_14words_`**](https://api.memory.lol/v1/tw/_14words_): an account that was [identified as white supremacist Illinois cop Aaron P. Nichols](https://accollective.noblogs.org/post/2022/04/01/magic-dirt-farmer/) earlier this year; this service connects this account to the screen name `@spd584`.
 
 In many cases the information provided by the service won't be enough to identify a person, but may provide hints about where to look next (for example looking up deleted tweets for old screen names with ✨[cancel-culture][cancel-culture]✨ is often a reasonable second step).
 
 ## Detailed example
 
-If you visit [`https://memory.lol/tw/libsoftiktok`](https://memory.lol/tw/libsoftiktok) in your browser, you'll see the following data:
+If you visit [`https://api.memory.lol/v1/tw/libsoftiktok`](https://api.memory.lol/v1/tw/libsoftiktok) in your browser, you'll see the following data:
 
 ```json
 {
@@ -107,13 +110,13 @@ These date ranges will not generally represent the entire time that the screen n
 
 ## Other features
 
-The service is very minimal. One of these few things it does support is querying multiple screen names via a comma-separated list (for example: [`https://memory.lol/tw/jr_majewski,MayraFlores2022`](https://memory.lol/tw/jr_majewski,MayraFlores2022)).
-It also supports searching for a screen name prefix (currently limited to 100 results; for example: [`https://memory.lol/tw/tradwife*`](https://memory.lol/tw/tradwife*)).
+The service is very minimal. One of these few things it does support is querying multiple screen names via a comma-separated list (for example: [`https://api.memory.lol/v1/tw/jr_majewski,MayraFlores2022`](https://api.memory.lol/v1/tw/jr_majewski,MayraFlores2022)).
+It also supports searching for a screen name prefix (currently limited to 100 results; for example: [`https://api.memory.lol/v1/tw/tradwife*`](https://api.memory.lol/v1/tw/tradwife*)).
 
 It currently only supports JSON output, but if you want a spreadsheet, for example, you can convert the JSON to CSV using a tool like [gojq][gojq]:
 
 ```bash
-$ curl -s https://memory.lol/tw/jr_majewski,MayraFlores2022 |
+$ curl -s https://api.memory.lol/v1/tw/jr_majewski,MayraFlores2022 |
 > gojq -r '.[].accounts | .[] | .id as $id | ."screen-names" | keys | [$id] + . | @csv'
 89469296,"LaRepublicana86","MayraFlores2022","MayraNohemiF"
 726873022603362304,"JRMajewski","jr_majewski"
@@ -123,7 +126,7 @@ $ curl -s https://memory.lol/tw/jr_majewski,MayraFlores2022 |
 Or if you want one screen name per row:
 
 ```bash
-$ curl -s https://memory.lol/tw/jr_majewski,MayraFlores2022 |
+$ curl -s https://api.memory.lol/v1/tw/jr_majewski,MayraFlores2022 |
 > gojq -r '.[].accounts | .[] | .id as $id | ."screen-names" | keys | .[] | [$id, .] | @csv'
 89469296,"LaRepublicana86"
 89469296,"MayraFlores2022"
@@ -138,7 +141,7 @@ Note that screen name queries are case-insensitive, but the results distinguish 
 
 ## Other endpoints
 
-You can also look up an account's history by account ID (e.g. [`https://memory.lol/tw/id/1326229737551912960`](https://memory.lol/tw/id/1326229737551912960) also shows the screen names for Raichik's account).
+You can also look up an account's history by account ID (e.g. [`https://api.memory.lol/v1/tw/id/1326229737551912960`](https://api.memory.lol/v1/tw/id/1326229737551912960) also shows the screen names for Raichik's account).
 
 ## Authorized access via device flow
 
@@ -146,15 +149,16 @@ There are currently several steps if you want to access the full index from the 
 By default you will receive date-restricted results:
 
 ```bash
-$ curl -s https://memory.lol/tw/libsoftiktok | jq
+$ curl -s https://api.memory.lol/v1/tw/USForcesKorea | jq
 {
   "accounts": [
     {
-      "id": 1326229737551912960,
-      "screen-names": {
-        "libsoftiktok": [
-          "2021-04-27",
-          "2022-07-12"
+      "id": 4749974413,
+      "id_str": "4749974413",
+      "screen_names": {
+        "USForcesKorea": [
+          "2018-06-08",
+          "2022-07-29"
         ]
       }
     }
@@ -164,7 +168,7 @@ $ curl -s https://memory.lol/tw/libsoftiktok | jq
 To access the full index (assuming you have an approved account), you'll first need to get a device code and user code, using exactly this command:
 
 ```bash
-$ curl -X POST -d 'client_id=92d5cb39d01c1a016f4b' https://github.com/login/device/code
+$ curl -X POST -d 'client_id=b8ab5a8c1a2745d514b7' https://github.com/login/device/code
 device_code=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx&expires_in=898&interval=5&user_code=ABCD-0123&verification_uri=https%3A%2F%2Fgithub.com%2Flogin%2Fdevice
 
 ```
@@ -174,31 +178,49 @@ Next visit [`https://github.com/login/device`](https://github.com/login/device) 
 Lastly you need to get your bearer token (replacing `device_code` below with the one you were given, but again using the `client_id` shown here):
 
 ```bash
-$curl -X POST -d 'device_code=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx&client_id=92d5cb39d01c1a016f4b&grant_type=urn:ietf:params:oauth:grant-type:device_code' https://github.com/login/oauth/access_token
+$ curl -X POST -d 'device_code=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx&client_id=b8ab5a8c1a2745d514b7&grant_type=urn:ietf:params:oauth:grant-type:device_code' https://github.com/login/oauth/access_token
 access_token=gho_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX&scope=&token_type=bearer
 ```
 
 You can then use this token to make authenticated queries:
 
 ```bash
-$ curl -s -X POST -d 'token=gho_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX' https://memory.lol/tw/libsoftiktok | jq
+$ curl -s -X POST -d 'token=gho_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX' https://api.memory.lol/v1/tw/USForcesKorea | jq
 {
   "accounts": [
     {
-      "id": 1326229737551912960,
-      "screen-names": {
-        "shaya69830552": [
-          "2020-11-10"
+      "id": 26847645,
+      "id_str": "26847645",
+      "screen_names": {
+        "USFKPAO": [
+          "2011-10-19",
+          "2016-06-19"
         ],
-        "shaya_ray": [
-          "2020-11-27",
-          "2021-01-26"
+        "usforceskorea": [
+          "2017-02-20",
+          "2018-03-27"
+        ]
+      }
+    },
+    {
+      "id": 4749974413,
+      "id_str": "4749974413",
+      "screen_names": {
+        "usforceskorea": [
+          "2016-02-26",
+          "2017-02-07"
         ],
-        "chayaraichik": [
-          "2021-01-31",
-          "2021-02-23"
+        "usforceskorea_": [
+          "2017-02-19",
+          "2018-04-24"
         ],
-  ...
+        "USForcesKorea": [
+          "2018-06-08",
+          "2022-07-29"
+        ]
+      }
+    }
+  ]
 }
 ```
 
