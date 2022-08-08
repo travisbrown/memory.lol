@@ -23,7 +23,7 @@ impl ScreenNameResult {
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Account {
     pub id: u64,
-    #[serde(rename = "screen-names")]
+    #[serde(rename = "screen_names")]
     pub screen_names: IndexMap<String, Option<Vec<NaiveDate>>>,
 }
 

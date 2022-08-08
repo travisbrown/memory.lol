@@ -3,7 +3,7 @@ use memory_lol::model::{Account, ScreenNameResult};
 use reqwest::Url;
 use std::collections::HashMap;
 
-const MEMORY_LOL_BASE: &str = "https://memory.lol/";
+const MEMORY_LOL_BASE: &str = "https://api.memory.lol/v1/";
 
 lazy_static::lazy_static! {
     pub static ref MEMORY_LOL_BASE_URL: Url = Url::parse(MEMORY_LOL_BASE).unwrap();
@@ -65,7 +65,6 @@ mod tests {
     use tokio::time::Duration;
 
     #[tokio::test]
-    #[ignore]
     #[serial]
     async fn lookup_tw_user_id() {
         let client = Client::default();
@@ -76,7 +75,6 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore]
     #[serial]
     #[cfg(not(tarpaulin))]
     async fn lookup_tw_screen_name() {
@@ -84,22 +82,25 @@ mod tests {
 
         let client = Client::default();
 
-        let result = client.lookup_tw_screen_name("WLMact").await.unwrap();
+        let result = client
+            .lookup_tw_screen_name("ConceptualJames")
+            .await
+            .unwrap();
         let expected = vec![(
-            1470631321496084481,
+            826261914,
             vec![
                 Observation::new(
-                    "i_am_not_a_nazi".to_string(),
+                    "GodDoesnt".to_string(),
                     Some((
-                        NaiveDate::from_ymd(2022, 05, 19),
-                        NaiveDate::from_ymd(2022, 06, 08),
+                        NaiveDate::from_ymd(2013, 01, 04),
+                        NaiveDate::from_ymd(2018, 07, 28),
                     )),
                 ),
                 Observation::new(
-                    "WLMact".to_string(),
+                    "ConceptualJames".to_string(),
                     Some((
-                        NaiveDate::from_ymd(2022, 06, 10),
-                        NaiveDate::from_ymd(2022, 07, 10),
+                        NaiveDate::from_ymd(2018, 07, 29),
+                        NaiveDate::from_ymd(2022, 08, 05),
                     )),
                 ),
             ],
