@@ -253,27 +253,41 @@ const observer = new MutationObserver((mutations) => {
           );
 
           if (emptyState) {
-            const primaryColumn = document.querySelector(
-              "div[data-testid='primaryColumn']"
+            const headerTextSpan = emptyState.querySelector(
+              "div[data-testid='empty_state_header_text'] > span"
             );
-            if (primaryColumn) {
-              const screenNameSpan = document.evaluate(
-                ".//span[starts-with(text(), '@')]",
-                primaryColumn,
-                null,
-                XPathResult.FIRST_ORDERED_NODE_TYPE,
-                null
-              ).singleNodeValue;
-              if (screenNameSpan) {
-                screenNameSpan.parentNode!.insertBefore(
-                  container!,
-                  screenNameSpan.nextSibling
+
+            if (headerTextSpan) {
+              // TODO: This should be localized?
+              if (
+                headerTextSpan.textContent &&
+                (headerTextSpan.textContent.includes("suspended") ||
+                  headerTextSpan.textContent.includes("exist"))
+              ) {
+                const primaryColumn = document.querySelector(
+                  "div[data-testid='primaryColumn']"
                 );
 
-                let screenName = screenNameSpan.textContent?.substring(1);
+                if (primaryColumn) {
+                  const screenNameSpan = document.evaluate(
+                    ".//span[starts-with(text(), '@')]",
+                    primaryColumn,
+                    null,
+                    XPathResult.FIRST_ORDERED_NODE_TYPE,
+                    null
+                  ).singleNodeValue;
+                  if (screenNameSpan) {
+                    screenNameSpan.parentNode!.insertBefore(
+                      container!,
+                      screenNameSpan.nextSibling
+                    );
 
-                if (screenName) {
-                  updateForNonExistent(screenName);
+                    let screenName = screenNameSpan.textContent?.substring(1);
+
+                    if (screenName) {
+                      updateForNonExistent(screenName);
+                    }
+                  }
                 }
               }
             }
