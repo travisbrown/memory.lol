@@ -16,9 +16,12 @@ const getUserInfo: (element: Element) => [string, string] | null = (
   if (element) {
     const ldJson: { author: { additionalName: string; identifier: string } } =
       JSON.parse(element.textContent!);
-    const author = ldJson.author;
 
-    return [author.identifier, author.additionalName];
+    if (ldJson && ldJson.author) {
+      const author = ldJson.author;
+
+      return [author.identifier, author.additionalName];
+    }
   }
 
   return null;
