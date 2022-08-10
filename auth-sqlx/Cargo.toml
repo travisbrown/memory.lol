@@ -1,6 +1,6 @@
 [package]
 name = "memory-lol-auth-sqlx"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Travis Brown <travisrobertbrown@gmail.com>"]
 repository = "https://github.com/travisbrown/memory-lol"
 keywords = ["twitter", "wayback"]
