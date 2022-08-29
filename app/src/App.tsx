@@ -13,7 +13,10 @@ function App() {
       <PostLoginRedirect />
       <Navbar aria-label="main navigation">
         <Navbar.Brand>
-          <Navbar.Item href="https://memory.lol/">memory.lol</Navbar.Item>
+          <Navbar.Item href="https://memory.lol/">
+            <img alt="memory.lol" src="/app/logos/dumpster.svg" />
+            <span>memory.lol</span>
+          </Navbar.Item>
         </Navbar.Brand>
         {/*<Navbar.Container align='left'>
             <Navbar.Item active>home</Navbar.Item>
