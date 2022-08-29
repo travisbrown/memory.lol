@@ -172,6 +172,7 @@ export function LoginStatus() {
             <Icon>
               <FontAwesomeIcon icon={faSignOut} />
             </Icon>
+            <span>Sign out</span>
           </Button>
         )}
       </Button.Group>
@@ -191,6 +192,7 @@ export function LoginStatus() {
             <Icon>
               <FontAwesomeIcon icon={faSignOut} />
             </Icon>
+            <span>Sign out</span>
           </Button>
         )}
       </Button.Group>
