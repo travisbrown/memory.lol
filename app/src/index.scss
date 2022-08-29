@@ -1,5 +1,10 @@
+$green: #82bd4e;
+$yellow: #fdce2e;
+$red: #f79d33;
+
+@import "~bulma/bulma.sass";
+
 body {
-  margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
     "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
     sans-serif;
@@ -10,4 +15,12 @@ body {
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
     monospace;
+}
+
+.navbar-brand > a > img {
+  max-height: 48px;
+}
+
+footer.footer {
+  background-color: white;
 }
