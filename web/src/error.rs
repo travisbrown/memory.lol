@@ -12,6 +12,8 @@ pub enum Error {
     Json(#[from] serde_json::Error),
     #[error("Database error")]
     Db(#[from] memory_lol::db::Error),
+    #[error("Profile database error")]
+    ProfileDb(#[from] hst_tw_db::Error),
     #[error("Invalid Snowflake ID")]
     InvalidSnowflake(i64),
     #[error("OAuth 2.0 error")]
