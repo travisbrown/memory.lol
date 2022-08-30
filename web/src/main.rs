@@ -168,6 +168,43 @@ async fn by_user_id_profiles(
     }
 }
 
+#[post("/tw/full/<user_id>", data = "<with_token>")]
+async fn by_user_id_profiles_post(
+    user_id: u64,
+    with_token: Form<WithToken<'_>>,
+    profile_db: &State<ProfileDb<PdbReadOnly>>,
+    authorizer: &State<SqliteAuthorizer>,
+    mut connection: Connection<Auth>,
+) -> Result<Json<Vec<hst_tw_profiles::model::User>>, Error> {
+    let authorization = authorizer
+        .authorize_github(&mut connection, with_token.token)
+        .await?;
+
+    let trusted = match authorization {
+        None => {
+            authorizer
+                .save_github_token(&mut connection, with_token.token)
+                .await?;
+
+            authorizer
+                .authorize_github(&mut connection, with_token.token)
+                .await?
+                .map(|authorization| authorization.is_trusted())
+                .unwrap_or(false)
+        }
+        Some(authorization) => authorization.is_trusted(),
+    };
+
+    if trusted {
+        let results = profile_db.lookup(user_id)?;
+        let profiles = results.into_iter().map(|(_, profile)| profile).collect();
+
+        Ok(Json(profiles))
+    } else {
+        Ok(Json(vec![]))
+    }
+}
+
 #[get("/tw/<screen_name_query>")]
 async fn by_screen_name(
     screen_name_query: String,
@@ -259,6 +296,7 @@ fn rocket() -> _ {
                 by_user_id,
                 by_user_id_post,
                 by_user_id_profiles,
+                by_user_id_profiles_post,
                 by_screen_name,
                 by_screen_name_post,
                 snowflake::info,
