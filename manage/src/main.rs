@@ -1,6 +1,6 @@
 use crate::import::{Session, UpdateMode};
 use chrono::{TimeZone, Utc};
-use clap::Parser;
+use clap::{ArgAction, Parser};
 use memory_lol::db::{Database, ReadOnly, Table, Writeable};
 use simplelog::LevelFilter;
 use std::fs::File;
@@ -277,8 +277,8 @@ pub enum Error {
 #[clap(name = "manage", version, author)]
 struct Opts {
     /// Level of verbosity
-    #[clap(short, long, parse(from_occurrences))]
-    verbose: i32,
+    #[clap(short, long, action = ArgAction::Count)]
+    verbose: u8,
     /// Database directory path
     #[clap(long)]
     db: String,
@@ -346,7 +346,7 @@ enum Command {
     RebuildIndex,
 }
 
-fn select_log_level_filter(verbosity: i32) -> LevelFilter {
+fn select_log_level_filter(verbosity: u8) -> LevelFilter {
     match verbosity {
         0 => LevelFilter::Off,
         1 => LevelFilter::Error,
@@ -358,7 +358,7 @@ fn select_log_level_filter(verbosity: i32) -> LevelFilter {
 }
 
 /// Initialize a default terminal logger with the indicated log level.
-pub fn init_logging(verbosity: i32) -> Result<(), log::SetLoggerError> {
+pub fn init_logging(verbosity: u8) -> Result<(), log::SetLoggerError> {
     simplelog::TermLogger::init(
         select_log_level_filter(verbosity),
         simplelog::Config::default(),
