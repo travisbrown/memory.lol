@@ -29,7 +29,7 @@ impl Client {
     }
 
     pub async fn lookup_tw_user_id(&self, user_id: u64) -> Result<Vec<Observation>, Error> {
-        let url = self.base.join(&format!("tw/id/{}", user_id))?;
+        let url = self.base.join(&format!("tw/id/{user_id}"))?;
         let account = reqwest::get(url).await?.json::<Account>().await?;
 
         Ok(Observation::from_account(&account))
@@ -39,7 +39,7 @@ impl Client {
         &self,
         screen_name: &str,
     ) -> Result<HashMap<u64, Vec<Observation>>, Error> {
-        let url = self.base.join(&format!("tw/{}", screen_name))?;
+        let url = self.base.join(&format!("tw/{screen_name}"))?;
         let accounts = reqwest::get(url).await?.json::<ScreenNameResult>().await?;
 
         Ok(accounts

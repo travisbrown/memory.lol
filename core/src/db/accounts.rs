@@ -350,7 +350,7 @@ fn key_to_pair(key: &[u8]) -> Result<(u64, &str), Error> {
 
 lazy_static::lazy_static! {
     /// Date of the first tweet
-    static ref TWITTER_EPOCH: NaiveDate = NaiveDate::from_ymd(2006, 3, 21);
+    static ref TWITTER_EPOCH: NaiveDate = NaiveDate::from_ymd_opt(2006, 3, 21).unwrap();
 }
 
 fn date_to_day_id(date: &NaiveDate) -> Result<u16, Error> {

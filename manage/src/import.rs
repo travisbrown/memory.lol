@@ -43,7 +43,7 @@ impl ScreenNameEntry {
         let screen_name_value = value.get("screen_name")?;
         let screen_name = screen_name_value.as_str()?.to_string();
         let snapshot_value = value.get("snapshot")?;
-        let snapshot = Utc.timestamp(snapshot_value.as_i64()?, 0);
+        let snapshot = Utc.timestamp_opt(snapshot_value.as_i64()?, 0).single()?;
         let snapshots = vec![snapshot];
 
         Some(Self {
@@ -57,7 +57,7 @@ impl ScreenNameEntry {
         let id = record.get(0).and_then(|value| value.parse::<u64>().ok())?;
         let screen_name = record.get(1)?.to_string();
         let snapshot_value = record.get(2).and_then(|value| value.parse::<i64>().ok())?;
-        let snapshot = Utc.timestamp(snapshot_value, 0);
+        let snapshot = Utc.timestamp_opt(snapshot_value, 0).single()?;
         let snapshots = vec![snapshot];
 
         Some(Self {

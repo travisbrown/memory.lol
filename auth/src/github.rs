@@ -23,7 +23,7 @@ impl GitHubClient {
             .get(GITHUB_USER_URL)
             .header("User-Agent", &self.user_agent)
             .header("Accept", GITHUB_ACCEPT_HEADER)
-            .header("Authorization", format!("token {}", token))
+            .header("Authorization", format!("token {token}"))
             .send()
             .await?;
 

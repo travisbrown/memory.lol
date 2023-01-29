@@ -52,10 +52,10 @@ fn main() -> Result<(), Error> {
         Command::Stats => {
             let db = Database::<ReadOnly>::open(&opts.db)?;
             if let Some(count) = db.accounts.get_estimated_key_count()? {
-                println!("Estimated account keys: {}", count);
+                println!("Estimated account keys: {count}");
             }
             if let Some(count) = db.screen_names.get_estimated_key_count()? {
-                println!("Estimated screen name keys: {}", count);
+                println!("Estimated screen name keys: {count}");
             }
 
             let (account_counts, screen_name_counts) = db.get_counts()?;
@@ -209,7 +209,7 @@ fn main() -> Result<(), Error> {
                 let line = line?;
                 let parts = line.split(',').collect::<Vec<_>>();
                 let user_id = parts
-                    .get(0)
+                    .first()
                     .and_then(|value| value.parse::<u64>().ok())
                     .ok_or_else(|| Error::InvalidImportLine(line.clone()))?;
                 let screen_name = parts
@@ -219,10 +219,12 @@ fn main() -> Result<(), Error> {
                 let mut dates = vec![];
 
                 for part in &parts[2..] {
-                    let value = part
+                    let timestamp = part
                         .parse::<i64>()
-                        .map_err(|_| Error::InvalidImportLine(line.clone()))?;
-                    dates.push(Utc.timestamp(value, 0).naive_utc().date());
+                        .ok()
+                        .and_then(|value_timestamp| Utc.timestamp_opt(value_timestamp, 0).single())
+                        .ok_or_else(|| Error::InvalidImportLine(line.clone()))?;
+                    dates.push(timestamp.naive_utc().date());
                 }
 
                 dates.sort();
@@ -238,7 +240,7 @@ fn main() -> Result<(), Error> {
                 let line = line?;
                 let parts = line.split(',').collect::<Vec<_>>();
                 let user_id = parts
-                    .get(0)
+                    .first()
                     .and_then(|value| value.parse::<u64>().ok())
                     .ok_or_else(|| Error::InvalidImportLine(line.clone()))?;
                 let screen_name = parts

@@ -10,7 +10,7 @@ pub(crate) fn snowflake_to_date_time(value: i64) -> Option<DateTime<Utc>> {
     if is_snowflake(value) {
         let timestamp_millis = (value >> 22) + 1288834974657;
 
-        Some(Utc.timestamp_millis(timestamp_millis))
+        Utc.timestamp_millis_opt(timestamp_millis).single()
     } else {
         None
     }
