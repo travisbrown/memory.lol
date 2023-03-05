@@ -1,7 +1,6 @@
 #[macro_use]
 extern crate rocket;
 
-use hst_tw_db::{table::ReadOnly as PdbReadOnly, ProfileDb};
 use memory_lol::db::{table::ReadOnly, Database};
 use memory_lol::model::Account;
 use memory_lol_auth::{
@@ -41,7 +40,6 @@ fn provider_fairing<P: IsProvider>() -> impl Fairing {
 #[derive(Deserialize)]
 pub struct AppConfig {
     db: String,
-    profile_db: String,
     authorization: String,
     domain: Option<String>,
     default_login_redirect_uri: rocket::http::uri::Reference<'static>,
@@ -150,24 +148,6 @@ async fn by_user_id_post(
     Ok(Json(account))
 }
 
-#[get("/tw/full/<user_id>")]
-async fn by_user_id_profiles(
-    user_id: u64,
-    cookies: &CookieJar<'_>,
-    profile_db: &State<ProfileDb<PdbReadOnly>>,
-    authorizer: &State<SqliteAuthorizer>,
-    connection: Connection<Auth>,
-) -> Result<Json<Vec<hst_tw_profiles::model::User>>, Error> {
-    if auth::lookup_is_trusted(cookies, authorizer, connection).await? {
-        let results = profile_db.lookup(user_id)?;
-        let profiles = results.into_iter().map(|(_, profile)| profile).collect();
-
-        Ok(Json(profiles))
-    } else {
-        Ok(Json(vec![]))
-    }
-}
-
 #[get("/tw/<screen_name_query>")]
 async fn by_screen_name(
     screen_name_query: String,
@@ -225,15 +205,6 @@ fn rocket() -> _ {
                 None => Err(rocket),
             }
         }))
-        .attach(AdHoc::try_on_ignite(
-            "Open profile database",
-            |rocket| async {
-                match init_profile_db(&rocket) {
-                    Some(profile_db) => Ok(rocket.manage(profile_db)),
-                    None => Err(rocket),
-                }
-            },
-        ))
         .attach(AdHoc::try_on_ignite("Inclusions", |rocket| async {
             match init_inclusions(&rocket) {
                 Some(inclusions) => Ok(rocket.manage(inclusions)),
@@ -258,7 +229,6 @@ fn rocket() -> _ {
             routes![
                 by_user_id,
                 by_user_id_post,
-                by_user_id_profiles,
                 by_screen_name,
                 by_screen_name_post,
                 snowflake::info,
@@ -277,11 +247,6 @@ fn rocket() -> _ {
 fn init_db(rocket: &Rocket<Build>) -> Option<Database<ReadOnly>> {
     let config = rocket.state::<AppConfig>()?;
     Database::<ReadOnly>::open(&config.db).ok()
-}
-
-fn init_profile_db(rocket: &Rocket<Build>) -> Option<ProfileDb<PdbReadOnly>> {
-    let config = rocket.state::<AppConfig>()?;
-    ProfileDb::<PdbReadOnly>::open(&config.profile_db, false).ok()
 }
 
 fn init_inclusions(rocket: &Rocket<Build>) -> Option<Inclusions> {
