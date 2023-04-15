@@ -1,6 +1,6 @@
 # memory.lol
 
-[![Rust build status](https://img.shields.io/github/workflow/status/travisbrown/memory.lol/rust-ci.svg?label=rust)](https://github.com/travisbrown/memory.lol/actions)
+[![Rust build status](https://img.shields.io/github/actions/workflow/status/travisbrown/memory.lol/ci.yaml)](https://github.com/travisbrown/memory.lol/actions)
 [![Coverage status](https://img.shields.io/codecov/c/github/travisbrown/memory.lol/main.svg)](https://codecov.io/github/travisbrown/memory.lol)
 
 ## Overview
