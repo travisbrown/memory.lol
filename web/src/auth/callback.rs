@@ -16,14 +16,14 @@ use rocket_db_pools::Connection;
 use rocket_oauth2::TokenResponse;
 
 fn make_cookie(name: &'static str, value: String, domain: &Option<String>) -> Cookie<'static> {
-    let cookie = Cookie::build(name, value).same_site(SameSite::Lax);
+    let cookie = Cookie::build((name, value)).same_site(SameSite::Lax);
 
     let cookie = match domain {
         Some(domain) => cookie.domain(domain.to_string()),
         None => cookie,
     };
 
-    cookie.finish()
+    cookie.into()
 }
 
 #[get("/auth/github")]

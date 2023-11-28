@@ -12,11 +12,11 @@ edition = "2021"
 
 [dependencies]
 chrono = { version = "0.4", features = ["serde"] }
-indexmap = { version = "1", features = ["serde"] }
+indexmap = { version = "2", features = ["serde"] }
 lazy_static = "1"
 log = "0.4"
 priority-queue = "1"
-rocksdb = { version = "0.20", default-features = false, features = ["snappy"] }
+rocksdb = { version = "0.21", default-features = false, features = ["snappy"] }
 serde = "1.0"
 serde_derive = "1.0"
 thiserror = "1.0"

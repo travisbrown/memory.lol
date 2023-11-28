@@ -15,7 +15,7 @@ egg-mode = "0.16"
 flagset = "0.4"
 futures = "0.3"
 futures-locks = "0.7"
-openid = "0.11"
+openid = "0.12"
 parking_lot = "0.12"
 reqwest = { version = "0.11", features = ["json"] }
 serde = "1.0"

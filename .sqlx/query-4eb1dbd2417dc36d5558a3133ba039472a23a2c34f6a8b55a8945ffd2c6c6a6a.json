@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO twitter_tokens (value, id, consumer_secret, access_key, access_secret)\n                VALUES (?, ?, ?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": []
+  },
+  "hash": "4eb1dbd2417dc36d5558a3133ba039472a23a2c34f6a8b55a8945ffd2c6c6a6a"
+}

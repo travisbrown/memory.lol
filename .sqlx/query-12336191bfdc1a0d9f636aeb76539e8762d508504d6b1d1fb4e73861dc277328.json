@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO google_tokens (value, id) VALUES (?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "12336191bfdc1a0d9f636aeb76539e8762d508504d6b1d1fb4e73861dc277328"
+}

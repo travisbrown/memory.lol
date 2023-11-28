@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO github_tokens (value, id, gist) VALUES (?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "a5f235a69bab2e4b327c5801e1b3bdfdbc754d209d644255c87ea8cc9e913847"
+}

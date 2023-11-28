@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id, consumer_secret, access_key, access_secret\n                    FROM twitter_tokens\n                    WHERE value = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "consumer_secret",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "access_key",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "access_secret",
+        "ordinal": 3,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "a58ed5600d19d83705cf7089fb0ffd9185d2fa49efcaabfda385f7c03dc941e5"
+}

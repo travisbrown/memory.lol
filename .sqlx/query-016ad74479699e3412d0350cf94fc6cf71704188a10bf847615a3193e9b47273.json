@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT google_tokens.id AS sub, google_names.value AS email\n                FROM google_tokens\n                JOIN google_names ON google_names.id = google_tokens.id\n                WHERE google_tokens.value = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "sub",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "email",
+        "ordinal": 1,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "016ad74479699e3412d0350cf94fc6cf71704188a10bf847615a3193e9b47273"
+}
