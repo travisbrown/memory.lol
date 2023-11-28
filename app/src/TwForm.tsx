@@ -40,7 +40,7 @@ export function TwForm() {
         <Form.Control>
           <Form.Input
             placeholder="Screen name"
-            type="text"
+            type="search"
             name="screen_name"
             value={searchFields.screen_name}
             onChange={handleChange}
@@ -56,7 +56,7 @@ export function TwForm() {
         <Form.Control>
           <Form.Input
             placeholder="Twitter ID"
-            type="text"
+            type="search"
             name="twitter_id"
             value={searchFields.twitter_id}
             onChange={handleChange}
