@@ -1,21 +1,21 @@
 [package]
 name = "memory-lol-auth-sqlx"
-version = "0.2.0"
-authors = ["Travis Brown <travisrobertbrown@gmail.com>"]
-repository = "https://github.com/travisbrown/memory-lol"
-keywords = ["twitter", "wayback"]
-license-file = "LICENSE"
-readme = "README.md"
-edition = "2021"
+authors = { workspace = true }
+homepage = { workspace = true }
+repository = { workspace = true }
+keywords = { workspace = true }
+license-file = { workspace = true }
+readme = { workspace = true }
+edition = { workspace = true }
+version = { workspace = true }
 
 [dependencies]
 async-trait = "0.1"
 egg-mode = "0.16"
 futures = "0.3"
 memory-lol-auth = { path = "../auth" }
-serde = "1.0"
-serde_derive = "1.0"
-serde_json = { version = "1.0", features = ["preserve_order"] }
-sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "sqlite"] }
-thiserror = "1.0"
-tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "sqlite"] }
+thiserror = { workspace = true }
+tokio = { workspace = true }

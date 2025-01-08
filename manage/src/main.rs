@@ -32,6 +32,32 @@ fn main() -> Result<(), Error> {
                 );
             }
         }
+        Command::LookupIds => {
+            let db = Database::<ReadOnly>::open(&opts.db)?;
+            for line in std::io::stdin().lines() {
+                let line = line?;
+                let id = line
+                    .parse::<u64>()
+                    .map_err(|_| Error::InvalidUserId(line.clone()))?;
+
+                let result = db.lookup_by_user_id(id)?;
+                let mut results = result.iter().collect::<Vec<_>>();
+                results.sort_by_key(|(screen_name, _)| screen_name.to_string());
+
+                for (screen_name, dates) in results {
+                    println!(
+                        "{},{},{}",
+                        id,
+                        screen_name,
+                        dates
+                            .iter()
+                            .map(|date| date.to_string())
+                            .collect::<Vec<_>>()
+                            .join(";")
+                    );
+                }
+            }
+        }
         Command::Dump => {
             let db = Database::<ReadOnly>::open(&opts.db)?;
             for pair in db.accounts.pairs() {
@@ -273,6 +299,8 @@ pub enum Error {
     LogInitialization(#[from] log::SetLoggerError),
     #[error("Invalid import line")]
     InvalidImportLine(String),
+    #[error("Invalid user ID")]
+    InvalidUserId(String),
 }
 
 #[derive(Debug, Parser)]
@@ -295,6 +323,8 @@ enum Command {
         /// Twitter user ID
         id: u64,
     },
+    /// Look up Twitter user IDs from stdin and export in CSV format
+    LookupIds,
     /// Export all pairs with observation dates in CSV format
     Dump,
     /// Print account, screen name, and pair counts

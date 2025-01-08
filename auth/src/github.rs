@@ -1,5 +1,5 @@
 use reqwest::{header::HeaderName, Client, StatusCode};
-use serde_derive::Deserialize;
+use serde::Deserialize;
 
 const GITHUB_USER_URL: &str = "https://api.github.com/user";
 const GITHUB_ACCEPT_HEADER: &str = "application/vnd.github+json";

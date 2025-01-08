@@ -14,8 +14,6 @@ pub enum Error {
     Csv(#[from] csv::Error),
     #[error("CSV record encoding error")]
     InvalidCsvRecord(csv::StringRecord),
-    #[error("JSON encoding error")]
-    InvalidJson(serde_json::Value),
     #[error("Database error")]
     Db(#[from] memory_lol::db::Error),
 }
@@ -28,15 +26,11 @@ pub struct ScreenNameEntry {
 }
 
 impl ScreenNameEntry {
-    pub fn from_json(value: &Value) -> Result<Self, Error> {
-        Self::from_json_opt(value).ok_or_else(|| Error::InvalidJson(value.clone()))
-    }
-
     pub fn from_record(record: &csv::StringRecord) -> Result<Self, Error> {
         Self::from_record_opt(record).ok_or_else(|| Error::InvalidCsvRecord(record.clone()))
     }
 
-    fn from_json_opt(value: &Value) -> Option<Self> {
+    pub fn from_json(value: &Value) -> Option<Self> {
         let id_str_value = value.get("id_str")?;
         let id_str_string = id_str_value.as_str()?;
         let id = id_str_string.parse::<u64>().ok()?;
@@ -87,7 +81,7 @@ impl Session {
             let line = line?;
             match serde_json::from_str(&line) {
                 Ok(value) => {
-                    if let Some(entry) = ScreenNameEntry::from_json_opt(&value) {
+                    if let Some(entry) = ScreenNameEntry::from_json(&value) {
                         session.add_entry(&entry);
                     }
                 }

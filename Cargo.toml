@@ -8,3 +8,22 @@ members = [
     "web",
     "client"
 ]
+resolver = "2"
+
+[workspace.package]
+authors = ["Travis Brown <travisrobertbrown@gmail.com>"]
+homepage = "https://github.com/travisbrown/memory-lol"
+repository = "https://github.com/travisbrown/memory-lol"
+keywords = ["twitter", "wayback"]
+license-file = "LICENSE"
+readme = "README.md"
+edition = "2021"
+version = "0.2.0"
+
+[workspace.dependencies]
+chrono = { version = "0.4", features = ["serde"] }
+rocksdb = { version = "0.23", default-features = false, features = ["snappy"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+thiserror = "2"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }

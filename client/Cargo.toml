@@ -1,27 +1,28 @@
 [package]
 name = "memory-lol-client"
-version = "0.2.0"
-authors = ["Travis Brown <travisrobertbrown@gmail.com>"]
-homepage = "https://github.com/travisbrown/memory-lol"
-repository = "https://github.com/travisbrown/memory-lol"
 description = "Client library for accessing the memory.lol web service"
-keywords = ["twitter", "wayback"]
-license-file = "../LICENSE"
-readme = "../README.md"
-edition = "2021"
+authors = { workspace = true }
+homepage = { workspace = true }
+repository = { workspace = true }
+keywords = { workspace = true }
+license-file = { workspace = true }
+readme = { workspace = true }
+edition = { workspace = true }
+version = { workspace = true }
 
 [dependencies]
-chrono = { version = "0.4", features = ["serde"] }
+chrono = { workspace = true }
 indexmap = { version = "2", features = ["serde"] }
-lazy_static = "1.4"
 memory-lol = { path = "../core", version = "0.2.0" }
-reqwest = { version = "0.11", features = ["json"] }
-serde = { version = "1", features = ["derive"] }
-serde_derive = "1"
-serde_json = { version = "1", features = ["preserve_order"] }
-thiserror = "1"
-tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+reqwest = { version = "0.12", features = ["json"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
 url = "2"
 
 [dev-dependencies]
-serial_test = "2"
+serial_test = "3"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(tarpaulin)'] }

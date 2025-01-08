@@ -9,6 +9,7 @@ use std::collections::HashMap;
 use std::convert::TryInto;
 use std::marker::PhantomData;
 use std::path::Path;
+use std::sync::LazyLock;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AccountTableCounts {
@@ -142,7 +143,7 @@ impl<M> AccountTable<M> {
                 let len = current.len();
 
                 if len >= min || queue.len() < k {
-                    queue.push((last_id, current.drain(..).collect()), len);
+                    queue.push((last_id, std::mem::take(&mut current)), len);
 
                     if queue.len() > k {
                         queue.pop_min();
@@ -348,10 +349,9 @@ fn key_to_pair(key: &[u8]) -> Result<(u64, &str), Error> {
     Ok((id, screen_name))
 }
 
-lazy_static::lazy_static! {
-    /// Date of the first tweet
-    static ref TWITTER_EPOCH: NaiveDate = NaiveDate::from_ymd_opt(2006, 3, 21).unwrap();
-}
+/// Date of the first tweet
+static TWITTER_EPOCH: LazyLock<NaiveDate> =
+    LazyLock::new(|| NaiveDate::from_ymd_opt(2006, 3, 21).unwrap());
 
 fn date_to_day_id(date: &NaiveDate) -> Result<u16, Error> {
     let day = (*date - *TWITTER_EPOCH).num_days();

@@ -2,12 +2,11 @@ use super::Observation;
 use memory_lol::model::{Account, ScreenNameResult};
 use reqwest::Url;
 use std::collections::HashMap;
+use std::sync::LazyLock;
 
 const MEMORY_LOL_BASE: &str = "https://api.memory.lol/v1/";
 
-lazy_static::lazy_static! {
-    pub static ref MEMORY_LOL_BASE_URL: Url = Url::parse(MEMORY_LOL_BASE).unwrap();
-}
+static MEMORY_LOL_BASE_URL: LazyLock<Url> = LazyLock::new(|| Url::parse(MEMORY_LOL_BASE).unwrap());
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -92,15 +91,15 @@ mod tests {
                 Observation::new(
                     "GodDoesnt".to_string(),
                     Some((
-                        NaiveDate::from_ymd(2013, 01, 04),
-                        NaiveDate::from_ymd(2018, 07, 28),
+                        NaiveDate::from_ymd_opt(2013, 01, 04).unwrap(),
+                        NaiveDate::from_ymd_opt(2018, 07, 28).unwrap(),
                     )),
                 ),
                 Observation::new(
                     "ConceptualJames".to_string(),
                     Some((
-                        NaiveDate::from_ymd(2018, 07, 29),
-                        NaiveDate::from_ymd(2022, 08, 05),
+                        NaiveDate::from_ymd_opt(2018, 07, 29).unwrap(),
+                        NaiveDate::from_ymd_opt(2022, 08, 05).unwrap(),
                     )),
                 ),
             ],

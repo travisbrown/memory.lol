@@ -1,25 +1,24 @@
 [package]
 name = "memory-lol"
-version = "0.2.0"
-authors = ["Travis Brown <travisrobertbrown@gmail.com>"]
-homepage = "https://github.com/travisbrown/memory-lol"
-repository = "https://github.com/travisbrown/memory-lol"
 description = "Database for tracking historical social media data"
-keywords = ["twitter", "wayback"]
-license-file = "../LICENSE"
-readme = "../README.md"
-edition = "2021"
+authors = { workspace = true }
+homepage = { workspace = true }
+repository = { workspace = true }
+keywords = { workspace = true }
+license-file = { workspace = true }
+readme = { workspace = true }
+edition = { workspace = true }
+version = { workspace = true }
 
 [dependencies]
-chrono = { version = "0.4", features = ["serde"] }
+chrono = { workspace = true }
 indexmap = { version = "2", features = ["serde"] }
-lazy_static = "1"
 log = "0.4"
-priority-queue = "1"
-rocksdb = { version = "0.21", default-features = false, features = ["snappy"] }
-serde = "1.0"
-serde_derive = "1.0"
-thiserror = "1.0"
+priority-queue = "2"
+rocksdb = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
 
 [dev-dependencies]
 tempfile = "3.3.0"

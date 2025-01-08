@@ -1,6 +1,6 @@
 use chrono::NaiveDate;
 use indexmap::IndexMap;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
@@ -47,8 +47,8 @@ impl Account {
         sorted.sort_by(|screen_name_a, dates_a, screen_name_b, dates_b| {
             dates_a
                 .as_ref()
-                .and_then(|dates| dates.get(0))
-                .cmp(&dates_b.as_ref().and_then(|dates| dates.get(0)))
+                .and_then(|dates| dates.first())
+                .cmp(&dates_b.as_ref().and_then(|dates| dates.first()))
                 .then_with(|| screen_name_a.cmp(screen_name_b))
         });
 

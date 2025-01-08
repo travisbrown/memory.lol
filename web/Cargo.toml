@@ -1,29 +1,27 @@
 [package]
 name = "memory-lol-web"
-version = "0.2.0"
-authors = ["Travis Brown <travisrobertbrown@gmail.com>"]
-repository = "https://github.com/travisbrown/memory-lol"
-keywords = ["twitter", "wayback"]
-license-file = "LICENSE"
-readme = "README.md"
-edition = "2021"
+authors = { workspace = true }
+homepage = { workspace = true }
+repository = { workspace = true }
+keywords = { workspace = true }
+license-file = { workspace = true }
+readme = { workspace = true }
+edition = { workspace = true }
+version = { workspace = true }
 
 [dependencies]
-chrono = { version = "0.4", features = ["serde"] }
+chrono = { workspace = true }
 indexmap = { version = "2", features = ["serde"] }
 egg-mode = "0.16"
-lazy_static = "1"
 log = "0.4"
 memory-lol = { path = "../core" }
 memory-lol-auth = { path = "../auth" }
 memory-lol-auth-sqlx = { path = "../auth-sqlx" }
-reqwest = { version = "0.11", features = ["json"] }
-rocket = { version = "0.5.0", features = ["json"] }
-rocket_oauth2 = "0.5.0"
-rocket_db_pools = { version = "0.1.0", features = ["sqlx_sqlite"] }
-rocksdb = { version = "0.21", default-features = false, features = ["snappy"] }
-serde = "1.0"
-serde_derive = "1.0"
-serde_json = { version = "1.0", features = ["preserve_order"] }
-thiserror = "1.0"
-tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+rocket = { git = "https://github.com/rwf2/Rocket.git", rev = "39c90481e700274da057d371a1da60bcc968aedc", features = ["json"] }
+rocket_oauth2 = { git = "https://github.com/travisbrown/rocket_oauth2.git", rev = "9c4a3baff0fb5d1f8b7ab2b57ac6153999b0dcd7" }
+rocket_db_pools = { git = "https://github.com/rwf2/Rocket.git", rev = "39c90481e700274da057d371a1da60bcc968aedc", features = ["sqlx_sqlite"] }
+rocksdb = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
