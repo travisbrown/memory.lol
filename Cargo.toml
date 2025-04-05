@@ -1,13 +1,6 @@
 [workspace]
 
-members = [
-    "core",
-    "manage",
-    "auth",
-    "auth-sqlx",
-    "web",
-    "client"
-]
+members = ["core", "manage", "auth", "auth-sqlx", "web", "client"]
 resolver = "2"
 
 [workspace.package]
@@ -22,7 +15,10 @@ version = "0.2.0"
 
 [workspace.dependencies]
 chrono = { version = "0.4", features = ["serde"] }
-rocksdb = { version = "0.23", default-features = false, features = ["snappy"] }
+rocksdb = { version = "0.23", default-features = false, features = [
+    "bindgen-runtime",
+    "snappy",
+] }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 thiserror = "2"
