@@ -53,7 +53,10 @@ It's possible to use the full version of the service from the command-line via G
 but this currently isn't very convenient (see [instructions below](#authorized-access-via-device-flow)).
 I'll be providing a client that makes command-line use a little easier.
 
-If you're interested in having your account approved for non-date-restricted access, please contact me.
+If you're interested in having your account approved for non-date-restricted access, feel free to contact me, but also note that I may not reply to your request.
+In general if someone I know and trust can vouch for you, or if you can point to (public) work that you've done that I find interesting, I'll give you access.
+If you're investigating crypto scams, work in law enforcement, or represent a company that doesn't have a clear history of publishing public interest research,
+it's unlikely I'll reply (unless you're law enforcement, in which case I definitely won't reply).
 
 ## Use cases
 
