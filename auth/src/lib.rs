@@ -146,10 +146,10 @@ impl<A: AuthDb> Authorizer<A> {
         let claims = self.google_client.extract_id_token(value)?;
         match claims.userinfo.email {
             Some(email) => {
-                A::put_google_email(connection, &claims.sub, &email)
+                A::put_google_email(connection, &claims.userinfo.sub, &email)
                     .await
                     .map_err(Error::AuthDb)?;
-                A::put_google_token(connection, token, &claims.sub)
+                A::put_google_token(connection, token, &claims.userinfo.sub)
                     .await
                     .map_err(Error::AuthDb)?;
 

@@ -17,9 +17,9 @@ log = "0.4"
 memory-lol = { path = "../core" }
 memory-lol-auth = { path = "../auth" }
 memory-lol-auth-sqlx = { path = "../auth-sqlx" }
-rocket = { git = "https://github.com/rwf2/Rocket.git", rev = "39c90481e700274da057d371a1da60bcc968aedc", features = ["json"] }
-rocket_oauth2 = { git = "https://github.com/travisbrown/rocket_oauth2.git", rev = "9c4a3baff0fb5d1f8b7ab2b57ac6153999b0dcd7" }
-rocket_db_pools = { git = "https://github.com/rwf2/Rocket.git", rev = "39c90481e700274da057d371a1da60bcc968aedc", features = ["sqlx_sqlite"] }
+rocket = { git = "https://github.com/rwf2/Rocket.git", rev = "3a54d079aef060a8f732bd04ea54b0581a604087", features = ["json"] }
+rocket_oauth2 = { git = "https://github.com/travisbrown/rocket_oauth2.git", rev = "e49c62a313d541d0681344f88715e94d2c621f5f" }
+rocket_db_pools = { git = "https://github.com/rwf2/Rocket.git", rev = "3a54d079aef060a8f732bd04ea54b0581a604087", features = ["sqlx_sqlite"] }
 rocksdb = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

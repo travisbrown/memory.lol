@@ -14,7 +14,7 @@ version = { workspace = true }
 chrono = { workspace = true }
 indexmap = { version = "2", features = ["serde"] }
 memory-lol = { path = "../core", version = "0.2.0" }
-reqwest = { version = "0.12", features = ["json"] }
+reqwest = { version = "0.13", features = ["json"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
