@@ -1,4 +1,4 @@
-use super::{error::Error, Auth, SqliteAuthorizer};
+use super::{Auth, SqliteAuthorizer, error::Error};
 use memory_lol_auth::model::Provider;
 use rocket::http::CookieJar;
 use rocket_db_pools::Connection;

@@ -1,7 +1,7 @@
-use super::{error::Error, inclusions::Inclusions, ExtendedAccount, ExtendedScreenNameResult};
+use super::{ExtendedAccount, ExtendedScreenNameResult, error::Error, inclusions::Inclusions};
 use chrono::{Duration, NaiveDate, Utc};
 use memory_lol::{
-    db::{table::ReadOnly, Database},
+    db::{Database, table::ReadOnly},
     model::Account,
 };
 use serde_json::{Map, Value};

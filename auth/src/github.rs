@@ -1,4 +1,4 @@
-use reqwest::{header::HeaderName, Client, StatusCode};
+use reqwest::{Client, StatusCode, header::HeaderName};
 use serde::Deserialize;
 
 const GITHUB_USER_URL: &str = "https://api.github.com/user";

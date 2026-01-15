@@ -1,5 +1,5 @@
 use chrono::{DateTime, Duration, Utc};
-use egg_mode::{auth::Token, KeyPair};
+use egg_mode::{KeyPair, auth::Token};
 use parking_lot::RwLock;
 use std::collections::HashMap;
 

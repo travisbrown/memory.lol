@@ -1,24 +1,24 @@
 #[macro_use]
 extern crate rocket;
 
-use memory_lol::db::{table::ReadOnly, Database};
+use memory_lol::db::{Database, table::ReadOnly};
 use memory_lol::model::Account;
 use memory_lol_auth::{
-    model::{
-        providers::{GitHub, Google, Twitter},
-        IsProvider,
-    },
     Authorizer,
+    model::{
+        IsProvider,
+        providers::{GitHub, Google, Twitter},
+    },
 };
 use memory_lol_auth_sqlx::SqlxAuthDb;
 use rocket::{
+    Build, Rocket, State,
     fairing::{AdHoc, Fairing},
     form::Form,
     http::CookieJar,
     serde::json::Json,
-    Build, Rocket, State,
 };
-use rocket_db_pools::{sqlx, Connection, Database as PoolDatabase};
+use rocket_db_pools::{Connection, Database as PoolDatabase, sqlx};
 use rocket_oauth2::{OAuth2, OAuthConfig};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;

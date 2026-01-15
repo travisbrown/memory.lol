@@ -1,5 +1,5 @@
 use chrono::{DateTime, NaiveDate, TimeZone, Utc};
-use memory_lol::db::{table::Writeable, Database};
+use memory_lol::db::{Database, table::Writeable};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::io::{BufRead, Read};

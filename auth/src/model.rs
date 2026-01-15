@@ -1,5 +1,5 @@
 use super::authorization::Error;
-use flagset::{flags, FlagSet};
+use flagset::{FlagSet, flags};
 use std::fmt::Display;
 use std::str::FromStr;
 

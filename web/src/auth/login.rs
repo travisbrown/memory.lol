@@ -1,13 +1,13 @@
 use super::super::{AppConfig, Auth, SqliteAuthorizer};
 use crate::error::Error;
 use memory_lol_auth::{
-    model::{
-        providers::{GitHub, Google, Twitter},
-        Provider, UserInfo,
-    },
     Authorization,
+    model::{
+        Provider, UserInfo,
+        providers::{GitHub, Google, Twitter},
+    },
 };
-use rocket::{http::CookieJar, response::Redirect, serde::json::Json, State};
+use rocket::{State, http::CookieJar, response::Redirect, serde::json::Json};
 use rocket_db_pools::Connection;
 use rocket_oauth2::OAuth2;
 use serde::Serialize;

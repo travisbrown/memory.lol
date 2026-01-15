@@ -1,10 +1,10 @@
 use super::{
+    Error,
     table::{Mode, Table, Writeable},
     util::is_valid_screen_name,
-    Error,
 };
 use chrono::{Duration, NaiveDate};
-use rocksdb::{DBIterator, IteratorMode, MergeOperands, Options, DB};
+use rocksdb::{DB, DBIterator, IteratorMode, MergeOperands, Options};
 use std::collections::HashMap;
 use std::convert::TryInto;
 use std::marker::PhantomData;

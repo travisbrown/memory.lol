@@ -4,13 +4,13 @@ use super::{
 };
 use crate::error::Error;
 use memory_lol_auth::model::{
-    providers::{GitHub, Google},
     Provider,
+    providers::{GitHub, Google},
 };
 use rocket::{
+    State,
     http::{Cookie, CookieJar, SameSite},
     response::Redirect,
-    State,
 };
 use rocket_db_pools::Connection;
 use rocket_oauth2::TokenResponse;

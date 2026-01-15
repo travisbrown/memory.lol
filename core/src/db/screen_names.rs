@@ -1,9 +1,9 @@
 use super::{
+    Error,
     accounts::AccountTable,
     table::{Mode, Table, Writeable},
-    Error,
 };
-use rocksdb::{IteratorMode, MergeOperands, Options, DB};
+use rocksdb::{DB, IteratorMode, MergeOperands, Options};
 use std::convert::TryInto;
 use std::marker::PhantomData;
 use std::path::Path;
