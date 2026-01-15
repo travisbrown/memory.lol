@@ -58,6 +58,19 @@ fn main() -> Result<(), Error> {
                 }
             }
         }
+        Command::LookupScreenNames => {
+            let db = Database::<ReadOnly>::open(&opts.db)?;
+            for line in std::io::stdin().lines() {
+                let screen_name = line?;
+
+                let mut ids = db.lookup_by_screen_name(&screen_name)?;
+                ids.sort();
+
+                for id in ids {
+                    println!("{},{}", id, screen_name);
+                }
+            }
+        }
         Command::Dump => {
             let db = Database::<ReadOnly>::open(&opts.db)?;
             for pair in db.accounts.pairs() {
@@ -325,6 +338,8 @@ enum Command {
     },
     /// Look up Twitter user IDs from stdin and export in CSV format
     LookupIds,
+    /// Look up Twitter screen names from stdin and export in CSV format
+    LookupScreenNames,
     /// Export all pairs with observation dates in CSV format
     Dump,
     /// Print account, screen name, and pair counts
