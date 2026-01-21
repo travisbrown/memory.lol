@@ -121,6 +121,11 @@ impl Database<Writeable> {
     pub fn rebuild_index(&mut self) -> Result<(), Error> {
         self.screen_names.rebuild(&self.accounts)
     }
+
+    pub fn compact(&self) {
+        self.accounts.compact();
+        self.screen_names.compact();
+    }
 }
 
 #[cfg(test)]

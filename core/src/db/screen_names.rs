@@ -57,6 +57,8 @@ impl<M> ScreenNameTable<M> {
         let mut options = Options::default();
         options.create_if_missing(true);
         options.set_merge_operator_associative("merge", merge);
+        options.set_compression_type(rocksdb::DBCompressionType::Lz4);
+        options.set_bottommost_compression_type(rocksdb::DBCompressionType::Zstd);
         options
     }
 
@@ -164,6 +166,10 @@ impl ScreenNameTable<Writeable> {
         }
 
         Ok(())
+    }
+
+    pub fn compact(&self) {
+        self.underlying().compact_range::<&[u8], &[u8]>(None, None)
     }
 }
 

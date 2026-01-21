@@ -56,7 +56,7 @@ impl<M> Table for AccountTable<M> {
 }
 
 impl<M> AccountTable<M> {
-    pub fn pairs(&self) -> PairIterator {
+    pub fn pairs(&self) -> PairIterator<'_> {
         PairIterator {
             underlying: self.db.iterator(IteratorMode::Start),
         }
@@ -166,6 +166,8 @@ impl<M: Mode> AccountTable<M> {
         let mut options = Options::default();
         options.create_if_missing(true);
         options.set_merge_operator_associative("merge", merge);
+        options.set_compression_type(rocksdb::DBCompressionType::Lz4);
+        options.set_bottommost_compression_type(rocksdb::DBCompressionType::Zstd);
 
         let db = if M::is_read_only() {
             DB::open_for_read_only(&options, path, true)?
@@ -242,6 +244,10 @@ impl AccountTable<Writeable> {
         }
 
         Ok(())
+    }
+
+    pub fn compact(&self) {
+        self.db.compact_range::<&[u8], &[u8]>(None, None)
     }
 }
 

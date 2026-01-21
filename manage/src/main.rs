@@ -293,6 +293,10 @@ fn main() -> Result<(), Error> {
             let mut db = Database::<Writeable>::open(&opts.db)?;
             db.rebuild_index()?;
         }
+        Command::Compact => {
+            let db = Database::<Writeable>::open(&opts.db)?;
+            db.compact();
+        }
     }
 
     Ok(())
@@ -391,6 +395,7 @@ enum Command {
     Remove,
     /// Rebuild screen name index
     RebuildIndex,
+    Compact,
 }
 
 fn select_log_level_filter(verbosity: u8) -> LevelFilter {
