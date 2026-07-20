@@ -1,0 +1,42 @@
+# Example configuration for memory-lol-api. Copy to Api.toml and fill in the
+# secrets (or provide them via MEMORY_LOL_-prefixed environment variables, e.g.
+# MEMORY_LOL_SECRET_KEY or MEMORY_LOL_GITHUB__CLIENT_SECRET).
+
+# Path to the account history RocksDB directory.
+db = "data/all"
+# CSV file mapping identities to access levels (same format as the legacy stack).
+authorization = "data/authorizations.csv"
+# SQLite authorization database (created and migrated automatically if missing).
+auth_db = "data/auth.db"
+# Optional file of user IDs (one per line) that always get full results.
+# inclusions = "data/inclusions.txt"
+
+# Optional cookie domain.
+# domain = "memory.lol"
+default_login_redirect_uri = "http://localhost:5173/app/"
+
+# Base64-encoded, at least 64 bytes once decoded. Generate with:
+#   openssl rand -base64 64
+secret_key = ""
+
+address = "127.0.0.1"
+port = 8000
+
+# In development the redirect URIs below route the provider's callback through
+# the Vite dev server's /v1 proxy, so the whole flow stays on one origin. The
+# registered callback URL of the OAuth app must match.
+
+[github]
+client_id = ""
+client_secret = ""
+redirect_uri = "http://localhost:5173/v1/auth/github"
+
+[google]
+client_id = ""
+client_secret = ""
+redirect_uri = "http://localhost:5173/v1/auth/google"
+
+[twitter]
+client_id = ""
+client_secret = ""
+redirect_uri = "http://localhost:5173/v1/auth/twitter"

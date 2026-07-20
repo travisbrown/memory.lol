@@ -1,0 +1,20 @@
+[package]
+name = "memory-lol-auth-rusqlite"
+authors = { workspace = true }
+homepage = { workspace = true }
+repository = { workspace = true }
+keywords = { workspace = true }
+license-file = { workspace = true }
+readme = { workspace = true }
+edition = { workspace = true }
+version = { workspace = true }
+
+[dependencies]
+async-trait = "0.1"
+egg-mode = "0.16"
+memory-lol-auth = { path = "../../auth" }
+thiserror = { workspace = true }
+tokio-rusqlite = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true }

@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", var(--font-sans);
+
+  /* Brand palette, carried over from the legacy Bulma theme. */
+  --color-brand-green: #82bd4e;
+  --color-brand-yellow: #fdce2e;
+  --color-brand-orange: #f79d33;
+}
+
+/* Semantic colors that adapt to the viewer's light/dark preference. */
+:root {
+  --color-surface: oklch(0.985 0.002 100);
+  --color-surface-raised: oklch(1 0 0);
+  --color-ink: oklch(0.25 0.02 260);
+  --color-ink-muted: oklch(0.5 0.02 260);
+  --color-edge: oklch(0.9 0.005 260);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-surface: oklch(0.19 0.015 260);
+    --color-surface-raised: oklch(0.24 0.015 260);
+    --color-ink: oklch(0.93 0.005 100);
+    --color-ink-muted: oklch(0.7 0.01 260);
+    --color-edge: oklch(0.33 0.015 260);
+  }
+}
+
+@theme inline {
+  --color-surface: var(--color-surface);
+  --color-surface-raised: var(--color-surface-raised);
+  --color-ink: var(--color-ink);
+  --color-ink-muted: var(--color-ink-muted);
+  --color-edge: var(--color-edge);
+}
+
+/* Search fields render their own clear button (see SearchField.svelte), so the
+   WebKit-only native one is suppressed to avoid a doubled control. */
+input[type="search"]::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}

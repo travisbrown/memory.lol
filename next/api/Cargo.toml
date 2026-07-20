@@ -1,0 +1,33 @@
+[package]
+name = "memory-lol-api"
+authors = { workspace = true }
+homepage = { workspace = true }
+repository = { workspace = true }
+keywords = { workspace = true }
+license-file = { workspace = true }
+readme = { workspace = true }
+edition = { workspace = true }
+version = { workspace = true }
+
+[dependencies]
+anyhow = "1"
+axum = "0.8"
+axum-extra = { version = "0.12", features = ["cookie-private"] }
+base64 = "0.22"
+chrono = { workspace = true }
+figment = { version = "0.10", features = ["env", "toml"] }
+indexmap = { version = "2", features = ["serde"] }
+memory-lol = { path = "../../core" }
+memory-lol-auth = { path = "../../auth" }
+memory-lol-auth-rusqlite = { path = "../auth-rusqlite" }
+rand = "0.9"
+reqwest = { version = "0.13", features = ["form", "json"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["signal"] }
+tokio-rusqlite = { workspace = true }
+tower-http = { version = "0.6", features = ["compression-gzip", "timeout", "trace"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+url = "2"

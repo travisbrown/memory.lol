@@ -2,3 +2,5 @@ Rocket.toml
 authz.csv
 /target/
 /tmp/
+next/api/Api.toml
+/next/target/
